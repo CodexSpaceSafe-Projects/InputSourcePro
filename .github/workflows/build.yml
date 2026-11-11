@@ -32,6 +32,14 @@ jobs:
       - name: Prepare build version
         id: release
         run: python3 scripts/release.py prepare
+      - name: Check preview layout
+        run: >-
+          python3 scripts/ci_xcodebuild.py --log "$RUNNER_TEMP/isp-preview.log" --
+          xcodebuild -project 'Input Source Pro.xcodeproj' -scheme 'Input Source Pro'
+          -configuration Debug -destination 'platform=macOS'
+          -derivedDataPath "$RUNNER_TEMP/isp-tests" -resultBundlePath "$RUNNER_TEMP/isp-preview.xcresult"
+          -only-testing:Tests/IndicatorPreviewLayoutTests
+          CODE_SIGN_IDENTITY=- CODE_SIGN_STYLE=Manual DEVELOPMENT_TEAM= test
       - name: Build and test app
         run: >-
           python3 scripts/ci_xcodebuild.py --log "$RUNNER_TEMP/isp-tests.log" --
@@ -79,6 +87,8 @@ jobs:
           name: macOS-test-results
           path: |
             ${{ runner.temp }}/isp-tests.xcresult
+            ${{ runner.temp }}/isp-preview.xcresult
+            ${{ runner.temp }}/isp-preview.log
             ${{ runner.temp }}/isp-tests.log
             ${{ runner.temp }}/isp-release.log
           if-no-files-found: ignore

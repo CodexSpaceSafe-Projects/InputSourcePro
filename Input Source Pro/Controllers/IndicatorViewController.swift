@@ -15,7 +15,7 @@ class IndicatorViewController: NSViewController {
     private var caretContentOffset = CGPoint.zero
     private var alwaysOnLeadingConstraint: NSLayoutConstraint?
     private var alwaysOnBottomConstraint: NSLayoutConstraint?
-    let hoverableView: NSViewHoverable
+    let hoverableView = NSViewHoverable(frame: .zero)
 
     private(set) var config: IndicatorViewConfig? = nil {
         didSet {
@@ -30,21 +30,6 @@ class IndicatorViewController: NSViewController {
 
     var fittingSize: CGSize? {
         nextNormalView?.fittingSize ?? normalView?.fittingSize
-    }
-
-    /// SwiftUI asks for zero and unspecified dimensions while measuring fixed-size
-    /// views and grid rows. Preserve the content's minimum, then center in any
-    /// larger finite proposal instead of letting the representable collapse.
-    func previewSize(proposedWidth: CGFloat?, proposedHeight: CGFloat?) -> CGSize? {
-        guard let natural = fittingSize else { return nil }
-        func dimension(_ proposed: CGFloat?, minimum: CGFloat) -> CGFloat {
-            guard let proposed, proposed.isFinite else { return minimum }
-            return max(minimum, proposed)
-        }
-        return CGSize(
-            width: dimension(proposedWidth, minimum: natural.width),
-            height: dimension(proposedHeight, minimum: natural.height)
-        )
     }
 
     private(set) var nextNormalView: NSView? = nil
@@ -72,8 +57,6 @@ class IndicatorViewController: NSViewController {
                 case .preview:
                     // SwiftUI may offer more space than the indicator needs. Center
                     // inside that proposal without pinning a fixed-size child to all edges.
-                    (hoverableView as? IndicatorPreviewHostView)?.contentSize = size
-                    preferredContentSize = size
                     constraints += [
                         normalView.centerXAnchor.constraint(equalTo: view.centerXAnchor),
                         normalView.centerYAnchor.constraint(equalTo: view.centerYAnchor),
@@ -110,12 +93,6 @@ class IndicatorViewController: NSViewController {
 
     init(layout: Layout = .floatingWindow) {
         self.layout = layout
-        switch layout {
-        case .floatingWindow:
-            hoverableView = NSViewHoverable(frame: .zero)
-        case .preview:
-            hoverableView = IndicatorPreviewHostView(frame: .zero)
-        }
         super.init(nibName: nil, bundle: nil)
     }
 
@@ -200,41 +177,4 @@ class IndicatorViewController: NSViewController {
     override func loadView() {
         view = hoverableView
     }
-}
-
-/// Reports the indicator's natural size to SwiftUI while allowing a flexible
-/// proposal to give the preview more room. The controller centers content in it.
-@MainActor
-private final class IndicatorPreviewHostView: NSViewHoverable {
-    private var minimumWidth: NSLayoutConstraint?
-    private var minimumHeight: NSLayoutConstraint?
-
-    var contentSize = NSSize.zero {
-        didSet {
-            guard contentSize != oldValue else { return }
-            minimumWidth?.constant = contentSize.width
-            minimumHeight?.constant = contentSize.height
-            invalidateIntrinsicContentSize()
-            needsLayout = true
-        }
-    }
-
-    override init(frame frameRect: NSRect) {
-        super.init(frame: frameRect)
-        // macOS 12 uses AppKit's sizing bridge rather than sizeThatFits. Make
-        // the minimum explicit so a zero-height grid proposal cannot hide content.
-        let width = widthAnchor.constraint(greaterThanOrEqualToConstant: 0)
-        let height = heightAnchor.constraint(greaterThanOrEqualToConstant: 0)
-        NSLayoutConstraint.activate([width, height])
-        minimumWidth = width
-        minimumHeight = height
-    }
-
-    @available(*, unavailable)
-    required init?(coder: NSCoder) {
-        fatalError("init(coder:) has not been implemented")
-    }
-
-    override var intrinsicContentSize: NSSize { contentSize }
-    override var fittingSize: NSSize { contentSize }
 }

@@ -275,10 +275,11 @@ final class IndicatorPreviewLayoutTests: XCTestCase {
                 let preview = try XCTUnwrap(previews(in: hostingView).first)
                 let content = try XCTUnwrap(preview.subviews.first)
                 let frame = content.convert(content.bounds, to: hostingView)
-                XCTAssertEqual(frame.midX, hostingView.bounds.midX, accuracy: 1)
-                XCTAssertEqual(frame.midY, hostingView.bounds.midY, accuracy: 1)
-                XCTAssertGreaterThanOrEqual(preview.bounds.height, content.fittingSize.height)
-                XCTAssertTrue(hostingView.bounds.contains(frame))
+                let geometry = "appearance size=\(size) kind=\(kind) " + geometryDescription(preview: preview, content: content, root: hostingView)
+                XCTAssertEqual(frame.midX, hostingView.bounds.midX, accuracy: 1, geometry)
+                XCTAssertEqual(frame.midY, hostingView.bounds.midY, accuracy: 1, geometry)
+                XCTAssertGreaterThanOrEqual(preview.bounds.height, content.fittingSize.height, geometry)
+                XCTAssertTrue(hostingView.bounds.contains(frame), geometry)
             }
         }
     }
@@ -303,9 +304,10 @@ final class IndicatorPreviewLayoutTests: XCTestCase {
                 let content = try XCTUnwrap(preview.subviews.first)
                 let frame = content.convert(content.bounds, to: hostingView)
                 let columnCenter: CGFloat = frame.midX < 250 ? 131 : 369
-                XCTAssertEqual(frame.midX, columnCenter, accuracy: 1)
-                XCTAssertGreaterThanOrEqual(preview.bounds.height, content.fittingSize.height)
-                XCTAssertTrue(hostingView.bounds.contains(frame))
+                let geometry = "grid size=\(size) " + geometryDescription(preview: preview, content: content, root: hostingView)
+                XCTAssertEqual(frame.midX, columnCenter, accuracy: 1, geometry)
+                XCTAssertGreaterThanOrEqual(preview.bounds.height, content.fittingSize.height, geometry)
+                XCTAssertTrue(hostingView.bounds.contains(frame), geometry)
             }
         }
     }
@@ -325,14 +327,28 @@ final class IndicatorPreviewLayoutTests: XCTestCase {
             let preview = try XCTUnwrap(previews(in: hostingView).first)
             let content = try XCTUnwrap(preview.subviews.first)
             let frame = content.convert(content.bounds, to: hostingView)
-            XCTAssertTrue(hostingView.bounds.insetBy(dx: 11, dy: 11).contains(frame), "\(alignment)")
-            XCTAssertEqual(preview.bounds.width, content.fittingSize.width, accuracy: 1)
-            XCTAssertEqual(preview.bounds.height, content.fittingSize.height, accuracy: 1)
+            let geometry = "position alignment=\(alignment) " + geometryDescription(preview: preview, content: content, root: hostingView)
+            XCTAssertTrue(hostingView.bounds.insetBy(dx: 11, dy: 11).contains(frame), geometry)
+            XCTAssertEqual(preview.bounds.width, content.fittingSize.width, accuracy: 1, geometry)
+            XCTAssertEqual(preview.bounds.height, content.fittingSize.height, accuracy: 1, geometry)
             if alignment == .center {
-                XCTAssertEqual(frame.midX, hostingView.bounds.midX, accuracy: 1)
-                XCTAssertEqual(frame.midY, hostingView.bounds.midY, accuracy: 1)
+                XCTAssertEqual(frame.midX, hostingView.bounds.midX, accuracy: 1, geometry)
+                XCTAssertEqual(frame.midY, hostingView.bounds.midY, accuracy: 1, geometry)
             }
         }
+    }
+
+    private func geometryDescription(preview: NSView, content: NSView, root: NSView) -> String {
+        var ancestors: [String] = []
+        var current = preview.superview
+        while let ancestor = current, ancestors.count < 6 {
+            ancestors.append("\(type(of: ancestor)){frame=\(ancestor.frame),bounds=\(ancestor.bounds)}")
+            if ancestor === root { break }
+            current = ancestor.superview
+        }
+        return "preview{frame=\(preview.frame),bounds=\(preview.bounds),fitting=\(preview.fittingSize),intrinsic=\(preview.intrinsicContentSize),autoresizing=\(preview.translatesAutoresizingMaskIntoConstraints)} "
+            + "content{frame=\(content.frame),bounds=\(content.bounds),fitting=\(content.fittingSize)} "
+            + "root{frame=\(root.frame),bounds=\(root.bounds)} ancestors=\(ancestors.joined(separator: " -> "))"
     }
 
     private func previews(in view: NSView) -> [NSViewHoverable] {
