@@ -34,6 +34,7 @@ jobs:
         run: python3 scripts/release.py prepare
       - name: Build and test app
         run: >-
+          python3 scripts/ci_xcodebuild.py --log "$RUNNER_TEMP/isp-tests.log" --
           xcodebuild -project 'Input Source Pro.xcodeproj' -scheme 'Input Source Pro'
           -configuration Debug -destination 'platform=macOS'
           -derivedDataPath "$RUNNER_TEMP/isp-tests" -resultBundlePath "$RUNNER_TEMP/isp-tests.xcresult"
@@ -44,7 +45,8 @@ jobs:
           APP_BUILD: ${{ steps.release.outputs.build }}
         run: |
           set -euo pipefail
-          xcodebuild -project 'Input Source Pro.xcodeproj' -scheme 'Input Source Pro' \
+          python3 scripts/ci_xcodebuild.py --log "$RUNNER_TEMP/isp-release.log" -- \
+            xcodebuild -project 'Input Source Pro.xcodeproj' -scheme 'Input Source Pro' \
             -configuration Release -destination 'generic/platform=macOS' \
             -derivedDataPath "$RUNNER_TEMP/isp-release" \
             ARCHS='arm64 x86_64' ONLY_ACTIVE_ARCH=NO \
@@ -75,7 +77,10 @@ jobs:
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
         with:
           name: macOS-test-results
-          path: ${{ runner.temp }}/isp-tests.xcresult
+          path: |
+            ${{ runner.temp }}/isp-tests.xcresult
+            ${{ runner.temp }}/isp-tests.log
+            ${{ runner.temp }}/isp-release.log
           if-no-files-found: ignore
     outputs:
       publish: ${{ steps.release.outputs.publish }}
