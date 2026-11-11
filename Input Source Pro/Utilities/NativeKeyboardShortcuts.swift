@@ -92,10 +92,10 @@ enum KeyboardShortcuts {
                     let layout = UnsafeRawPointer(bytes).assumingMemoryBound(to: UCKeyboardLayout.self)
                     var deadKeyState: UInt32 = 0
                     var characters = [UniChar](repeating: 0, count: 8)
-                    var count: UniCharCount = 0
+                    var count = 0
                     let status = UCKeyTranslate(layout, UInt16(code), UInt16(kUCKeyActionDisplay), 0,
                                                 UInt32(LMGetKbdType()), OptionBits(kUCKeyTranslateNoDeadKeysMask),
-                                                &deadKeyState, UniCharCount(characters.count), &count, &characters)
+                                                &deadKeyState, .init(characters.count), &count, &characters)
                     if status == noErr, count > 0 {
                         return String(utf16CodeUnits: characters, count: Int(count)).uppercased()
                     }
@@ -173,7 +173,7 @@ enum KeyboardShortcuts {
                     var identifier = EventHotKeyID()
                     let status = GetEventParameter(event, EventParamName(kEventParamDirectObject),
                                                    EventParamType(typeEventHotKeyID), nil,
-                                                   ByteCount(MemoryLayout<EventHotKeyID>.size), nil, &identifier)
+                                                   .init(MemoryLayout<EventHotKeyID>.size), nil, &identifier)
                     guard status == noErr, identifier.signature == 0x4953504B else {
                         return OSStatus(eventNotHandledErr)
                     }

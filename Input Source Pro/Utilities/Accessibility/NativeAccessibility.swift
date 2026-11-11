@@ -37,6 +37,7 @@ enum Role: String {
     case textField = "AXTextField"
     case staticText = "AXStaticText"
     case textArea = "AXTextArea"
+    case webArea = "AXWebArea"
     case scrollArea = "AXScrollArea"
     case popUpButton = "AXPopUpButton"
     case menuButton = "AXMenuButton"

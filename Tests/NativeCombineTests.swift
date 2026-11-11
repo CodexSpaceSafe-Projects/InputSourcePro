@@ -3,6 +3,72 @@ import XCTest
 @testable import Input_Source_Pro
 
 final class NativeCombineTests: XCTestCase {
+    func testCallbackFactoryCleansUpAfterSynchronousFirstCancelsDuringSetup() {
+        var cleanups = 0
+        var values: [Int] = []
+        let source = AnyPublisher<Int, Never>.create { emitter in
+            emitter.send(1)
+            emitter.send(2)
+            return AnyCancellable { cleanups += 1 }
+        }
+        let subscription = source.first().sink { values.append($0) }
+        XCTAssertEqual(values, [1])
+        XCTAssertEqual(cleanups, 1)
+        subscription.cancel()
+        XCTAssertEqual(cleanups, 1)
+    }
+
+    func testCallbackFactoryStopsDeliveryAndRunsCleanupOnceAfterCancellation() {
+        var callback: NativePublisherEmitter<Int, Never>?
+        var cleanups = 0
+        var values: [Int] = []
+        let source = AnyPublisher<Int, Never>.create { emitter in
+            callback = emitter
+            return AnyCancellable { cleanups += 1 }
+        }
+        let subscription = source.sink { values.append($0) }
+        callback?.send(1)
+        subscription.cancel()
+        callback?.send(2)
+        callback?.send(completion: .finished)
+        subscription.cancel()
+        XCTAssertEqual(values, [1])
+        XCTAssertEqual(cleanups, 1)
+    }
+
+    func testCallbackFactoryBuffersSynchronousValuesUntilDemandThenFinishes() {
+        var cleanups = 0
+        let source = AnyPublisher<Int, Never>.create { emitter in
+            emitter.send(1)
+            emitter.send(2)
+            emitter.send(completion: .finished)
+            return AnyCancellable { cleanups += 1 }
+        }
+        let subscriber = LimitedSubscriber<Int>()
+        source.subscribe(subscriber)
+        XCTAssertTrue(subscriber.values.isEmpty)
+        XCTAssertEqual(subscriber.events, ["subscription-start", "subscription-end"])
+        XCTAssertEqual(cleanups, 1)
+        subscriber.subscription?.request(.max(1))
+        XCTAssertEqual(subscriber.values, [1])
+        subscriber.subscription?.request(.max(1))
+        XCTAssertEqual(subscriber.values, [1, 2])
+        XCTAssertEqual(subscriber.events.last, "completion")
+        XCTAssertEqual(cleanups, 1)
+    }
+
+    func testCallbackFactoryDoesNotStartAfterCancellationDuringSubscription() {
+        var starts = 0
+        let source = AnyPublisher<Int, Never>.create { _ in
+            starts += 1
+            return AnyCancellable {}
+        }
+        let subscriber = LimitedSubscriber<Int>()
+        subscriber.onSubscription = { [weak subscriber] in subscriber?.subscription?.cancel() }
+        source.subscribe(subscriber)
+        XCTAssertEqual(starts, 0)
+    }
+
     func testReplaySharesOneConnectionAndCancelsAfterLastSubscriber() {
         let source = PassthroughSubject<Int, Never>()
         var connections = 0

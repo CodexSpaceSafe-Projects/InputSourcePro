@@ -1,6 +1,75 @@
 import Combine
 import Foundation
 
+extension AnyPublisher {
+    /// Adapts a callback API, retaining its cleanup until completion or cancellation.
+    static func create(
+        _ build: @escaping (NativePublisherEmitter<Output, Failure>) -> AnyCancellable
+    ) -> AnyPublisher<Output, Failure> {
+        NativeCallbackPublisher(build: build).eraseToAnyPublisher()
+    }
+}
+
+struct NativePublisherEmitter<Output, Failure: Error> {
+    fileprivate let receiveValue: (Output) -> Void
+    fileprivate let receiveCompletion: (Subscribers.Completion<Failure>) -> Void
+
+    func send(_ value: Output) { receiveValue(value) }
+    func send(completion: Subscribers.Completion<Failure>) { receiveCompletion(completion) }
+}
+
+private struct NativeCallbackPublisher<Output, Failure: Error>: Publisher {
+    let build: (NativePublisherEmitter<Output, Failure>) -> AnyCancellable
+
+    func receive<S: Subscriber>(subscriber: S) where S.Input == Output, S.Failure == Failure {
+        let lifetime = NativeCallbackLifetime()
+        let subscription = NativeReplaySubscription(
+            downstream: AnySubscriber(subscriber), buffer: [], capacity: Int.max,
+            completion: nil, waitsForBufferedDemand: true, onEnd: { lifetime.cancel() }
+        )
+        subscriber.receive(subscription: subscription)
+        subscription.activate()
+        guard subscription.isActive else { return }
+        let emitter = NativePublisherEmitter<Output, Failure>(receiveValue: { [weak subscription] value in
+            subscription?.enqueue(value)
+            subscription?.drain()
+        }, receiveCompletion: { [weak subscription] completion in
+            subscription?.enqueue(completion: completion)
+            lifetime.cancel()
+            subscription?.drain()
+        })
+        // A synchronous emission may already have completed or cancelled (.first()).
+        // In that case setCleanup immediately cancels the newly returned resource.
+        lifetime.setCleanup(build(emitter))
+    }
+}
+
+private final class NativeCallbackLifetime {
+    private let lock = NSLock()
+    private var cleanup: AnyCancellable?
+    private var ended = false
+
+    func setCleanup(_ cleanup: AnyCancellable) {
+        lock.lock()
+        if ended {
+            lock.unlock()
+            cleanup.cancel()
+        } else {
+            self.cleanup = cleanup
+            lock.unlock()
+        }
+    }
+
+    func cancel() {
+        lock.lock()
+        ended = true
+        let cleanup = self.cleanup
+        self.cleanup = nil
+        lock.unlock()
+        cleanup?.cancel()
+    }
+}
+
 extension Publisher {
     func mapToVoid() -> AnyPublisher<Void, Failure> {
         map { _ in () }.eraseToAnyPublisher()
@@ -154,6 +223,7 @@ private final class NativeReplaySubject<Value, Failure: Error>: Subject {
 private final class NativeReplaySubscription<Value, Failure: Error>: Subscription {
     private let lock = NSLock()
     private let capacity: Int
+    private let waitsForBufferedDemand: Bool
     private var downstream: AnySubscriber<Value, Failure>?
     private var buffer: [Value]
     private var completion: Subscribers.Completion<Failure>?
@@ -163,12 +233,20 @@ private final class NativeReplaySubscription<Value, Failure: Error>: Subscriptio
     private var onEnd: (() -> Void)?
 
     init(downstream: AnySubscriber<Value, Failure>, buffer: [Value], capacity: Int,
-         completion: Subscribers.Completion<Failure>?, onEnd: @escaping () -> Void) {
+         completion: Subscribers.Completion<Failure>?, waitsForBufferedDemand: Bool = false,
+         onEnd: @escaping () -> Void) {
         self.downstream = downstream
         self.buffer = buffer
         self.capacity = capacity
+        self.waitsForBufferedDemand = waitsForBufferedDemand
         self.completion = completion
         self.onEnd = onEnd
+    }
+
+    var isActive: Bool {
+        lock.lock()
+        defer { lock.unlock() }
+        return downstream != nil && completion == nil
     }
 
     func activate() {
@@ -227,7 +305,7 @@ private final class NativeReplaySubscription<Value, Failure: Error>: Subscriptio
                 let additionalDemand = downstream.receive(value)
                 lock.lock()
                 demand += additionalDemand
-            } else if let completion, buffer.isEmpty || demand == .none {
+            } else if let completion, buffer.isEmpty || (!waitsForBufferedDemand && demand == .none) {
                 self.downstream = nil
                 // A terminal event does not require demand. Pending replay is
                 // delivered first only when the subscriber has requested it.
