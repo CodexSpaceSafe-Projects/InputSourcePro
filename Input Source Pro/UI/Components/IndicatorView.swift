@@ -5,21 +5,37 @@ struct IndicatorView: NSViewControllerRepresentable {
     @EnvironmentObject var indicatorVM: IndicatorVM
     @EnvironmentObject var inputSourceVM: InputSourceVM
 
-    func makeNSViewController(context _: Context) -> IndicatorViewController {
-        return IndicatorViewController(layout: .preview)
-    }
-
-    func updateNSViewController(_ indicatorViewController: IndicatorViewController, context _: Context) {
-        indicatorViewController.prepare(config: IndicatorViewConfig(
+    private var config: IndicatorViewConfig {
+        IndicatorViewConfig(
             inputSource: indicatorVM.state.inputSource,
             kind: preferencesVM.preferences.indicatorKind,
             size: preferencesVM.preferences.indicatorSize ?? .medium,
             bgColor: NSColor(preferencesVM.preferences.indicatorBackgroundColor),
             textColor: NSColor(preferencesVM.preferences.indicatorForgegroundColor),
             showsCapsLock: preferencesVM.preferences.isShowCapsLockStatus && indicatorVM.isCapsLockOn
-        ))
+        )
+    }
 
-        indicatorViewController.refresh()
+    func makeNSViewController(context _: Context) -> IndicatorViewController {
+        let controller = IndicatorViewController(layout: .preview)
+        // Configure before SwiftUI's first measurement, including ideal-size queries.
+        controller.prepare(config: config)
+        controller.refresh()
+        return controller
+    }
+
+    func updateNSViewController(_ controller: IndicatorViewController, context _: Context) {
+        controller.prepare(config: config)
+        controller.refresh()
+    }
+
+    @available(macOS 13.0, *)
+    func sizeThatFits(
+        _ proposal: ProposedViewSize,
+        nsViewController controller: IndicatorViewController,
+        context _: Context
+    ) -> CGSize? {
+        controller.previewSize(proposedWidth: proposal.width, proposedHeight: proposal.height)
     }
 }
 
@@ -31,11 +47,23 @@ struct DumpIndicatorView: NSViewControllerRepresentable {
     }
 
     func makeNSViewController(context _: Context) -> IndicatorViewController {
-        return IndicatorViewController(layout: .preview)
+        let controller = IndicatorViewController(layout: .preview)
+        controller.prepare(config: config)
+        controller.refresh()
+        return controller
     }
 
-    func updateNSViewController(_ indicatorViewController: IndicatorViewController, context _: Context) {
-        indicatorViewController.prepare(config: config)
-        indicatorViewController.refresh()
+    func updateNSViewController(_ controller: IndicatorViewController, context _: Context) {
+        controller.prepare(config: config)
+        controller.refresh()
+    }
+
+    @available(macOS 13.0, *)
+    func sizeThatFits(
+        _ proposal: ProposedViewSize,
+        nsViewController controller: IndicatorViewController,
+        context _: Context
+    ) -> CGSize? {
+        controller.previewSize(proposedWidth: proposal.width, proposedHeight: proposal.height)
     }
 }
