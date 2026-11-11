@@ -49,6 +49,17 @@ class XcodeDiagnosticsTests(unittest.TestCase):
             self.assertEqual(log.read_text().count('error: invalid'), 2)
             self.assertIn('exited 65', summary.read_text())
 
+    def test_generic_failure_annotation_contains_escaped_rolling_output_tail(self):
+        with tempfile.TemporaryDirectory() as directory, contextlib.redirect_stdout(io.StringIO()) as captured:
+            code = "import sys; [print(f'context {i}') for i in range(20)]; print('ValueError: invalid bundle 100%'); sys.exit(1)"
+            status = ci.execute([sys.executable, '-c', code], Path(directory) / 'bundle.log')
+            self.assertEqual(status, 1)
+            annotation = next(line for line in captured.getvalue().splitlines() if line.startswith('::error::'))
+            self.assertIn('ValueError: invalid bundle 100%25', annotation)
+            self.assertIn('context 6%0A', annotation)
+            self.assertNotIn('context 5%0A', annotation)
+            self.assertIn('Last output:%0A', annotation)
+
     def test_success_does_not_emit_error_annotations(self):
         with tempfile.TemporaryDirectory() as directory, contextlib.redirect_stdout(io.StringIO()) as captured:
             self.assertEqual(ci.execute([sys.executable, '-c', "print('done')"], Path(directory) / 'build.log'), 0)

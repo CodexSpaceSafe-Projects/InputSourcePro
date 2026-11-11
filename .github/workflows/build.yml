@@ -32,6 +32,35 @@ jobs:
       - name: Prepare build version
         id: release
         run: python3 scripts/release.py prepare
+      - name: Build universal release app
+        env:
+          APP_VERSION: ${{ steps.release.outputs.version }}
+          APP_BUILD: ${{ steps.release.outputs.build }}
+        run: |
+          set -euo pipefail
+          python3 scripts/ci_xcodebuild.py --log "$RUNNER_TEMP/isp-release.log" -- \
+            xcodebuild -project 'Input Source Pro.xcodeproj' -scheme 'Input Source Pro' \
+            -configuration Release -destination 'generic/platform=macOS' \
+            -derivedDataPath "$RUNNER_TEMP/isp-release" \
+            ARCHS='arm64 x86_64' ONLY_ACTIVE_ARCH=NO \
+            CODE_SIGN_IDENTITY=- CODE_SIGN_STYLE=Manual DEVELOPMENT_TEAM= \
+            CURRENT_PROJECT_VERSION="$APP_BUILD" MARKETING_VERSION="$APP_VERSION" build
+      - name: Stage release app
+        run: >-
+          python3 scripts/ci_xcodebuild.py --log "$RUNNER_TEMP/isp-stage.log" --
+          ditto "$RUNNER_TEMP/isp-release/Build/Products/Release/Input Source Pro.app" 'dist/Input Source Pro.app'
+      - name: Verify app signatures
+        run: >-
+          python3 scripts/ci_xcodebuild.py --log "$RUNNER_TEMP/isp-signatures.log" --
+          codesign --verify --deep --strict 'dist/Input Source Pro.app'
+      - name: Validate offline app bundle
+        run: >-
+          python3 scripts/ci_xcodebuild.py --log "$RUNNER_TEMP/isp-bundle.log" --
+          python3 scripts/release.py check-bundle
+      - name: Verify universal app architecture
+        run: >-
+          python3 scripts/ci_xcodebuild.py --log "$RUNNER_TEMP/isp-architectures.log" --
+          lipo -verify_arch arm64 x86_64 'dist/Input Source Pro.app/Contents/MacOS/Input Source Pro'
       - name: Check preview layout
         run: >-
           python3 scripts/ci_xcodebuild.py --log "$RUNNER_TEMP/isp-preview.log" --
@@ -47,29 +76,15 @@ jobs:
           -configuration Debug -destination 'platform=macOS'
           -derivedDataPath "$RUNNER_TEMP/isp-tests" -resultBundlePath "$RUNNER_TEMP/isp-tests.xcresult"
           CODE_SIGN_IDENTITY=- CODE_SIGN_STYLE=Manual DEVELOPMENT_TEAM= test
-      - name: Build universal release app
-        env:
-          APP_VERSION: ${{ steps.release.outputs.version }}
-          APP_BUILD: ${{ steps.release.outputs.build }}
-        run: |
-          set -euo pipefail
-          python3 scripts/ci_xcodebuild.py --log "$RUNNER_TEMP/isp-release.log" -- \
-            xcodebuild -project 'Input Source Pro.xcodeproj' -scheme 'Input Source Pro' \
-            -configuration Release -destination 'generic/platform=macOS' \
-            -derivedDataPath "$RUNNER_TEMP/isp-release" \
-            ARCHS='arm64 x86_64' ONLY_ACTIVE_ARCH=NO \
-            CODE_SIGN_IDENTITY=- CODE_SIGN_STYLE=Manual DEVELOPMENT_TEAM= \
-            CURRENT_PROJECT_VERSION="$APP_BUILD" MARKETING_VERSION="$APP_VERSION" build
-          ditto "$RUNNER_TEMP/isp-release/Build/Products/Release/Input Source Pro.app" 'dist/Input Source Pro.app'
-          codesign --verify --deep --strict 'dist/Input Source Pro.app'
-          python3 scripts/release.py check-bundle
-          lipo -verify_arch arm64 x86_64 'dist/Input Source Pro.app/Contents/MacOS/Input Source Pro'
       - name: Package app
         env:
           ASSET: ${{ steps.release.outputs.asset }}
-        run: |
-          set -euo pipefail
+        run: >-
+          python3 scripts/ci_xcodebuild.py --log "$RUNNER_TEMP/isp-package.log" --
           ditto -c -k --sequesterRsrc --keepParent 'dist/Input Source Pro.app' "dist/$ASSET"
+      - name: Write package checksum
+        run: >-
+          python3 scripts/ci_xcodebuild.py --log "$RUNNER_TEMP/isp-checksum.log" --
           python3 scripts/release.py checksum
       - name: Upload build
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
@@ -88,9 +103,7 @@ jobs:
           path: |
             ${{ runner.temp }}/isp-tests.xcresult
             ${{ runner.temp }}/isp-preview.xcresult
-            ${{ runner.temp }}/isp-preview.log
-            ${{ runner.temp }}/isp-tests.log
-            ${{ runner.temp }}/isp-release.log
+            ${{ runner.temp }}/isp-*.log
           if-no-files-found: ignore
     outputs:
       publish: ${{ steps.release.outputs.publish }}

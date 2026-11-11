@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """Stream an Xcode command, preserve its status, and annotate useful diagnostics."""
 import argparse
+from collections import deque
 from dataclasses import dataclass
 import os
 from pathlib import Path
@@ -78,6 +79,7 @@ def execute(command, log_path):
     log_path.parent.mkdir(parents=True, exist_ok=True)
     diagnostics = []
     seen = set()
+    tail = deque(maxlen=15)
     with log_path.open('w') as output:
         try:
             process = subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
@@ -92,6 +94,9 @@ def execute(command, log_path):
             sys.stdout.write(line)
             sys.stdout.flush()
             output.write(line)
+            clean = ANSI.sub('', line).strip()
+            if clean:
+                tail.append(clean[:1200])
             diagnostic = parse_diagnostic(line)
             if diagnostic and diagnostic not in seen:
                 seen.add(diagnostic)
@@ -101,7 +106,8 @@ def execute(command, log_path):
         returncode = process.wait()
     if returncode:
         if not diagnostics:
-            diagnostics.append(Diagnostic(f'{Path(command[0]).name} failed with exit status {returncode}; inspect {log_path.name}.'))
+            context = '\n'.join(tail) if tail else '(no output)'
+            diagnostics.append(Diagnostic(f'{Path(command[0]).name} failed with exit status {returncode}. Last output:\n{context}'))
         for diagnostic in diagnostics:
             print(annotation(diagnostic), flush=True)
         if len(seen) > MAX_ANNOTATIONS:
