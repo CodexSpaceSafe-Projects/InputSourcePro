@@ -1,5 +1,4 @@
 import AppKit
-import AXSwift
 
 final class CaretFocusObserver {
     struct Focus: Equatable {
@@ -51,7 +50,7 @@ final class CaretFocusObserver {
     private static func connect(pid: pid_t, changed: @escaping () -> Void) throws -> Connection {
         let application = UIElement(AXUIElementCreateApplication(pid))
         application.messagingTimeout = 0.25
-        let observer = try AXSwift.Observer(processID: pid) { _, _, _ in changed() }
+        let observer = try Observer(processID: pid) { _, _, _ in changed() }
         for notification: AXNotification in [.focusedUIElementChanged, .focusedWindowChanged] {
             do {
                 try observer.addNotification(notification, forElement: application)

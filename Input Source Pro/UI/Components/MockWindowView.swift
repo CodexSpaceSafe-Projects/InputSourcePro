@@ -1,10 +1,9 @@
 import SwiftUI
-import VisualEffects
 
 struct MockWindowView: View {
     var body: some View {
         ZStack {
-            VisualEffectBlur(
+            NativeVisualEffectView(
                 material: .windowBackground,
                 blendingMode: .withinWindow,
                 state: .active

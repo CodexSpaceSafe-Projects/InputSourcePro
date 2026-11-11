@@ -1,9 +1,7 @@
 import AppKit
-import AXSwift
 import Carbon
 import Combine
 import Foundation
-import CombineExt
 
 @MainActor
 class InputSourceVM: ObservableObject {

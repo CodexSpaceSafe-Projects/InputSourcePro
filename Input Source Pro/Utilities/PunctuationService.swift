@@ -185,7 +185,6 @@ class PunctuationService: ObservableObject {
             return Unmanaged.passUnretained(event)
         }
         
-        logger.debug { "🎯 Intercepting punctuation key: \(keyCode) ('\(englishReplacement)') in CJKV input method: \(currentInputSource.name)" }
         
         // Create a new event with English replacement
         if let newEvent = createEnglishPunctuationEvent(originalEvent: event, replacement: englishReplacement) {
@@ -219,7 +218,6 @@ class PunctuationService: ObservableObject {
         // Explicitly set flags to none to ensure clean character input
         newEvent.flags = []
         
-        logger.debug { "Created ASCII replacement event for: '\(replacement)' using original keyCode: \(originalKeyCode)" }
         
         return newEvent
     }

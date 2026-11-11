@@ -1,133 +1,54 @@
-<p align="center">
-    <a href="https://inputsource.pro" target="_blank">
-        <img height="200" src="https://inputsource.pro/img/app-icon.png" alt="Input Source Pro Logo">
-    </a>
-</p>
+# Input Source Pro — Offline Native Edition
 
-<h1 align="center">Input Source Pro</h1>
+A macOS input-source switcher built entirely with Apple frameworks. This fork
+removes application Internet requests and all third-party Swift packages.
 
-<p align="center">Switch and track your input sources with ease ✨</p>
+- Automatically choose input sources per application or browser website.
+- Show a configurable input-source indicator near the cursor, mouse or window.
+- Configure global keyboard and modifier shortcuts.
+- Apply per-app punctuation and function-key modes.
+- Import and export settings through the local settings window, with confirmation.
 
-<p align="center">
-    <a href="https://inputsource.pro" target="_blank">Website</a> ·
-    <a href="https://inputsource.pro/changelog" target="_blank">Releases</a> ·
-    <a href="https://github.com/runjuu/InputSourcePro/discussions">Discussions</a>
-</p>
+There is no startup telemetry, online feedback, advertising, in-app updater or
+custom URL configuration import. Browser URLs are inspected locally for rules;
+they are not requested or uploaded. The application uses local macOS IPC only.
 
-> **Input Source Pro** is a free and open-source macOS utility designed for multilingual users who frequently switch input sources. It automates input source switching based on the active application — or even the specific website you're browsing — significantly boosting your productivity and typing experience.
+## Build and test
 
-<table>
-    <tr>
-        <td>
-            <a href="https://inputsource.pro">
-                <img src="./imgs/switch-keyboard-base-on-app.gif"  alt="Switch Keyboard Based on App" width="100%">
-            </a>
-        </td>
-        <td>
-            <a href="https://inputsource.pro">
-                <img src="./imgs/switch-keyboard-base-on-browser.gif"  alt="Switch Keyboard Based on Browser" width="100%">
-            </a>
-        </td>
-    </tr>
-</table>
+Open `Input Source Pro.xcodeproj` in Xcode 26 or later, or run:
 
-<hr />
-
-<p align="center">
-  <a href="https://refine.sh?utm_source=github&utm_medium=readme&utm_campaign=inputsourcepro">
-    <img src="https://refine.sh/banner.png" width="800" />
-  </a>
-</p>
-
-<p align="center">
-    🙌 Meet my new app: <a href="https://refine.sh/" target="_blank">Refine</a>, a local Grammarly alternative that runs 100% offline 🤩
-</p>
-
-<hr />
-
-## Features
-
-### 🥷 Automatic Context-Aware Switching
-- Set a default input source per **application**.
-- Set input sources per **website** when using browsers (Safari, Chrome, Arc, Edge, Vivaldi, Opera, Brave, Firefox, Zen, Dia, and more).
-- Switch automatically as you move between apps/websites.
-
-### 🐈‍⬛ Elegant Input Source Indicator
-- Shows your current input source with a clean on-screen indicator.
-- Customizable and designed to stay out of your way.
-
-### ✍️ App-Aware Punctuation Modes
-Keep punctuation consistent across different languages by enabling **Force English Punctuation** for specific apps.
-- Automatically types standard symbols (`` ` ~ - _ $ ^ , . ; ' " [ ] ``) even when your current input source would normally produce localized or full-width characters.
-- Enable it only for the apps where you need it, such as code editors or terminal windows.
-
-### 🎛️ App-Based Function Key Switching
-Automatically switch your macOS function key mode per app.
-- Choose whether an app should use **F1 ~ F12** as:
-    - **Standard Function Keys**: Acts as standard F1 ~ F12 keys. Ideal for IDEs (e.g., VSCode) and games.
-    - **Media Keys**: Triggers special features printed on the keys (e.g., brightness, volume, playback). Ideal for general daily use.
-- Falls back to your system-wide/default setting when an app has no override.
-
-### ⌨️ Custom Shortcuts
-Switch input sources via either:
-- **Keyboard Shortcuts**: Use standard key combinations.
-- **Modifier Shortcuts**: Use single or combined modifier keys (e.g., Shift, Command, or Shift + Command), triggered by pressing once or double-tapping.
-
-### 😎 And Much More...
-
-<a href="https://inputsource.pro">
-    <img width="892" alt="image" src="https://github.com/user-attachments/assets/351e2ac9-27d8-402e-8739-21c3f604a3c1" />
-</a>
-
-
-## Installation
-
-### Using Homebrew
-
-```bash
-brew install --cask input-source-pro
+```sh
+xcodebuild -project 'Input Source Pro.xcodeproj' -scheme 'Input Source Pro' \
+  -configuration Debug -destination 'platform=macOS' \
+  -derivedDataPath /tmp/inputsourcepro-derived CODE_SIGNING_ALLOWED=NO test
 ```
 
-### Manual Download
-Download the latest release from the [Releases page](https://inputsource.pro/changelog).
+No SwiftPM packages or third-party binaries need to be fetched. The app supports
+macOS 12 and later; native launch-at-login registration requires macOS 13 or later.
+Accessibility and Input Monitoring permissions are still required for the
+features that inspect other applications or handle global input events.
 
-## Sponsors
+The optional Cursor Helper requires the app and helper to have an Apple
+publisher signature from the same developer. Ad-hoc CI builds disable that
+optional integration rather than weaken IPC authentication; standard
+Accessibility-based cursor tracking remains available.
 
-This project is made possible by all the sponsors supporting my work:
+## Automated builds and releases
 
-<p align="center">
-  <a href="https://github.com/sponsors/runjuu">
-    <img src="https://github.com/runjuu/runjuu/raw/refs/heads/main/sponsorkit/sponsors.svg" alt="Logos from Sponsors" />
-  </a>
-</p>
+Pushes and pull requests run tests and build a universal app. Push a version tag
+such as `v2.14.0` or `2.14.0` to build and upload an app ZIP and SHA-256 checksum to
+this repository's GitHub Releases. The pipeline uses GitHub-hosted macOS runners
+and does not require signing credentials, npm, a third-party updater or a
+release service. See [release instructions](docs/releases.md).
 
-## Contributing
+CI ZIPs are ad-hoc signed and are not notarized by Apple. macOS may require a
+user-approved Gatekeeper exception; distributing Developer ID signed builds
+requires a separate signing setup.
 
-Contributions are highly welcome! Whether you have a bug report, a feature suggestion, or want to contribute code, your help is appreciated.
+## Source and license
 
-* For detailed contribution steps, setup, and code guidelines, please read our [**Contributing Guidelines**](CONTRIBUTING.md).
-* **Bug Reports:** Please submit bug reports via [**GitHub Issues**](https://github.com/runjuu/InputSourcePro/issues). Check existing issues first!
-* **Feature Requests & Questions:** For suggesting new features, asking questions, or general discussion, please use [**GitHub Discussions**](https://github.com/runjuu/InputSourcePro/discussions).
-* **Code of Conduct:** Please note that this project adheres to our [**Code of Conduct**](CODE_OF_CONDUCT.md). By participating, you are expected to uphold this code.
+Based on Input Source Pro by runjuu and contributors. Existing source attributions
+and license notices are retained. New wrappers use Apple Accessibility, Carbon,
+Combine, Auto Layout, ServiceManagement and AppKit APIs directly.
 
-## Building from Source
-Clone the repository and build it using Xcode 27 or later (Swift 6.4 or later):
-
-```bash
-git clone git@github.com:runjuu/InputSourcePro.git
-```
-
-Then open the project in Xcode and hit Build. 🍻
-
-## Star History
-
-<a href="https://www.star-history.com/#runjuu/InputSourcePro&type=date&legend=bottom-right">
- <picture>
-   <source media="(prefers-color-scheme: dark)" srcset="https://api.star-history.com/svg?repos=runjuu/InputSourcePro&type=date&theme=dark&legend=bottom-right" />
-   <source media="(prefers-color-scheme: light)" srcset="https://api.star-history.com/svg?repos=runjuu/InputSourcePro&type=date&legend=bottom-right" />
-   <img alt="Star History Chart" src="https://api.star-history.com/svg?repos=runjuu/InputSourcePro&type=date&legend=bottom-right" />
- </picture>
-</a>
-
-## License
-Input Source Pro is licensed under the [GPL-3.0 License](LICENSE).
+Licensed under GPL-3.0; see [LICENSE](LICENSE).

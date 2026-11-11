@@ -1,5 +1,4 @@
 import AppKit
-import AXSwift
 
 enum SpotlightIndicatorPosition {
     static func usesSearchFieldBounds(

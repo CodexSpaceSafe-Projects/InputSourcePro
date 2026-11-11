@@ -1,7 +1,6 @@
 "Input Source Pro" = "Input Source Pro";
 "Preferences" = "設定";
 "Changelog" = "更新紀錄";
-"Check for Updates" = "檢查更新";
 "Buy me a bubble tea" = "請我喝杯珍珠奶茶";
 "Join Our Community" = "加入社群";
 "Quit" = "結束";
@@ -10,12 +9,7 @@
 "Default Keyboard Tooltip" = "選擇空白選項時，Input Source Pro 不會自動切換目前 App 的輸入法";
 "Default" = "預設";
 
-"Promotion" = "Input Source Pro 完全免費 —— 無廣告、無應用內購買，並且完全開源。如果你喜歡這款應用，可以透過以下方式支持其未來的發展 ;)";
-"Star on GitHub" = "在 GitHub 上標星";
-"Sponsor" = "贊助";
-"Share with friends" = "分享給朋友";
 "Also by Runju" = "Runju 的其他作品";
-"An AI-powered grammar checker that runs 100% locally" = "一款由 AI 驅動、100% 在本機運行的語法檢查工具";
 
 "General" = "一般";
 "Rules" = "規則";
@@ -170,8 +164,6 @@
 "Default Keyboard for Address Bar" = "網址列預設輸入法";
 
 "Version" = "版本";
-"Check Updates" = "檢查更新";
-"Automatically Check for Updates" = "自動檢查更新";
 
 "Support" = "聯絡方式";
 "Website" = "網站";
@@ -185,12 +177,6 @@
 "Find Us" = "找到我們";
 "Right click each section to copy link" = "右鍵點選各項可以複製連結";
 
-"Send Feedback" = "傳送使用者意見";
-"FeedbackTips" = "👀";
-"FeedbackMessageTitle" = "說點什麼";
-"FeedbackMessagePlaceholder" = "發現了 Bug 或者是少了一個你超想要的功能？";
-"FeedbackEmailTitle" = "回信信箱（可選）";
-"FeedbackSuccessTips" = "感謝回報～我們會盡快回覆你的！❤️";
 
 "Delete" = "刪除";
 "Select Input Sources" = "選擇輸入法";
@@ -236,10 +222,6 @@
 "Settings Backup" = "設定備份";
 "Export Settings" = "匯出設定";
 "Import Settings" = "匯入設定";
-"Scriptable Import Entry" = "從命令列還原";
-"Scriptable Import Title" = "用一條命令匯入設定";
-"Scriptable Import Summary" = "在新 Mac 上還原 Input Source Pro。";
-"Scriptable Import Silent" = "隱藏成功提示";
 "Done" = "完成";
 "Settings Exported" = "設定已匯出";
 "Settings Exported Message" = "設定備份已成功匯出。";
@@ -247,7 +229,6 @@
 "Settings Imported Message" = "設定已成功匯入。";
 "Export Settings Failed" = "匯出設定失敗";
 "Import Settings Failed" = "匯入設定失敗";
-"No valid file path was provided. Use an absolute path, e.g. inputsourcepro://import?path=/path/to/settings.json" = "未提供有效的檔案路徑。請使用絕對路徑，例如：inputsourcepro://import?path=/path/to/settings.json";
 "Replace Current Settings?" = "取代目前設定？";
 "Import Settings Confirmation Message" = "匯入此檔案將取代目前支援的設定、規則、顏色配置、快捷鍵群組和已記錄的快捷鍵。";
 "Unsupported settings backup version %@" = "不支援的設定備份版本 %@。";
@@ -258,6 +239,3 @@
 "Display When Caps Lock Changes" = "大寫鎖定狀態變更時顯示";
 "Display the input source when Caps Lock changes, with a symbol while it is on." = "大寫鎖定狀態變更時顯示輸入法，開啟時附帶大寫鎖定圖示。";
 "Caps Lock On" = "大寫鎖定已開啟";
-
-"Receive beta updates" = "接收測試版更新";
-"Stable updates resume when a newer stable build is available." = "當有更新的穩定版組建可用時，將恢復穩定版更新。";

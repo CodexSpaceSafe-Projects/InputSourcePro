@@ -1,4 +1,3 @@
-import AXSwift
 import Cocoa
 
 class QueryWebAreaService {

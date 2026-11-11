@@ -1,7 +1,6 @@
 import AppKit
 import Carbon
 import Combine
-import AXSwift
 
 /// Optional cursor support, activated only after helper setup succeeds.
 @MainActor

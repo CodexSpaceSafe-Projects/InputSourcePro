@@ -1,5 +1,4 @@
 import Foundation
-import KeyboardShortcuts
 
 extension PreferencesVM {
     private func shortcutPreferenceKey(for inputSource: InputSource) -> String {

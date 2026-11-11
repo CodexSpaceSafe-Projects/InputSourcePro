@@ -6,22 +6,12 @@ struct AccessibilityPermissionRequestView: View {
 
     @Binding var isPresented: Bool
 
-    @State var isDisableTips: Bool = true
-
     var body: some View {
         VStack(alignment: .leading) {
             Text(.init("Enhanced Mode Permission Description".i18n()))
                 .lineSpacing(4)
 
             HStack {
-                Button(action: URL.howToEnableAccessbility.open) {
-                    SwiftUI.Image(systemName: "questionmark")
-                }
-                .font(.system(size: 10).weight(.bold))
-                .frame(width: 18, height: 18)
-                .clipShape(RoundedRectangle(cornerRadius: 99))
-                .disabled(isDisableTips)
-
                 Spacer()
 
                 Button("Open Accessibility Preferences") {
@@ -38,11 +28,6 @@ struct AccessibilityPermissionRequestView: View {
         .lineLimit(nil)
         .frame(width: 400)
         .onChange(of: permissionsVM.isAccessibilityEnabled, perform: whenAccessibilityEnabled)
-        .onAppear {
-            DispatchQueue.main.async {
-                isDisableTips = false
-            }
-        }
     }
 
     func cancel() {

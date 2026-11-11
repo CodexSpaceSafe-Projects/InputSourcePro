@@ -1,5 +1,4 @@
 import Foundation
-import KeyboardShortcuts
 
 struct ShortcutAssignment<Shortcut: Equatable>: Equatable {
     let id: String

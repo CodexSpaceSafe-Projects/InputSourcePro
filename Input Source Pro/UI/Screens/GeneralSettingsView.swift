@@ -7,7 +7,6 @@ struct GeneralSettingsView: View {
     @EnvironmentObject var indicatorVM: IndicatorVM
 
     @State var isDetectSpotlightLikeApp = false
-    @State private var isShowScriptableImportGuide = false
 
     var items: [PickerItem] {
         [PickerItem.empty]
@@ -36,10 +35,6 @@ struct GeneralSettingsView: View {
 
         ScrollView {
             VStack(alignment: .leading, spacing: 18) {
-                SettingsSection(title: "Also by Runju") {
-                    RefinePromotionCard()
-                }
-
                 SettingsSection(title: "Default Keyboard") {
                     HStack {
                         Text("For All Apps and Websites".i18n())
@@ -169,11 +164,31 @@ struct GeneralSettingsView: View {
                         
                         HStack {
                             Toggle("", isOn: $preferencesVM.preferences.isLaunchAtLogin)
+                                .disabled(!NativeLaunchAtLogin.isSupported)
                             Text("Launch at Login".i18n())
                             Spacer()
                         }
                         .padding()
                         .border(width: 1, edges: [.bottom], color: NSColor.border2.color)
+
+                        if !NativeLaunchAtLogin.isSupported {
+                            Text("Launch at Login requires macOS 13 or later.")
+                                .font(.caption)
+                                .foregroundColor(.secondary)
+                                .padding(.horizontal)
+                        }
+                        if let error = preferencesVM.launchAtLoginError {
+                            Text(error)
+                                .font(.caption)
+                                .foregroundColor(.red)
+                                .padding(.horizontal)
+                        }
+                        if NativeLaunchAtLogin.requiresApproval {
+                            Button("Open Login Items Settings") {
+                                NativeLaunchAtLogin.openSettings()
+                            }
+                            .padding(.horizontal)
+                        }
 
                         HStack {
                             Toggle("", isOn: $preferencesVM.preferences.isShowIconInMenuBar)
@@ -184,28 +199,6 @@ struct GeneralSettingsView: View {
                         .border(width: 1, edges: [.bottom], color: NSColor.border2.color)
                     }
 
-                    SettingsSection(title: "") {
-                        HStack {
-                            Toggle("Receive beta updates".i18n(), isOn: $preferencesVM.receivesBetaUpdates)
-                            Text("Receive beta updates".i18n())
-                            Spacer()
-                        }
-                        .help("Stable updates resume when a newer stable build is available.".i18n())
-                        .padding()
-                        .border(width: 1, edges: [.bottom], color: NSColor.border2.color)
-
-                        Button(action: { preferencesVM.checkUpdates() }, label: {
-                            HStack {
-                                Text("Check for Updates".i18n() + "...")
-
-                                Spacer()
-
-                                Text(" \(preferencesVM.versionStr) (\(preferencesVM.buildStr))")
-                                    .foregroundColor(Color.primary.opacity(0.5))
-                            }
-                        })
-                        .buttonStyle(SectionButtonStyle())
-                    }
                 }
 
                 SettingsSection(title: "Settings Backup") {
@@ -229,90 +222,11 @@ struct GeneralSettingsView: View {
                     .buttonStyle(SectionButtonStyle())
                     .border(width: 1, edges: [.bottom], color: NSColor.border2.color)
 
-                    Button(action: { isShowScriptableImportGuide = true }) {
-                        HStack {
-                            Text("Scriptable Import Entry".i18n())
-
-                            Spacer()
-                        }
-                    }
-                    .buttonStyle(SectionButtonStyle())
-                    .sheet(isPresented: $isShowScriptableImportGuide) {
-                        ScriptableSettingsImportGuideView(isPresented: $isShowScriptableImportGuide)
-                    }
                 }
 
-                Group {
-                    SettingsSection(title: "Find Us", tips: Text("Right click each section to copy link").font(.subheadline).opacity(0.5)) {
-                        Button(action: { URL.website.open() }, label: {
-                            HStack {
-                                Text("Website".i18n())
-                                    .foregroundColor(Color.primary)
-
-                                Spacer()
-
-                                Text(URL.website.absoluteString)
-                            }
-                        })
-                        .buttonStyle(SectionButtonStyle())
-                        .contextMenu {
-                            Button("Copy") {
-                                NSPasteboard.general.clearContents()
-                                NSPasteboard.general.setString(URL.website.absoluteString, forType: .string)
-                            }
-                        }
-                        .border(width: 1, edges: [.bottom], color: NSColor.border2.color)
-
-                        Button(action: { URL.twitter.open() }, label: {
-                            HStack {
-                                Text("Twitter")
-                                    .foregroundColor(Color.primary)
-
-                                Spacer()
-
-                                Text("@runjuuu")
-                            }
-                        })
-                        .buttonStyle(SectionButtonStyle())
-                        .contextMenu {
-                            Button("Copy") {
-                                NSPasteboard.general.clearContents()
-                                NSPasteboard.general.setString(URL.twitter.absoluteString, forType: .string)
-                            }
-                        }
-                        .border(width: 1, edges: [.bottom], color: NSColor.border2.color)
-
-                        Button(action: { URL.email.open() }, label: {
-                            HStack {
-                                Text("Email")
-                                    .foregroundColor(Color.primary)
-
-                                Spacer()
-
-                                Text(URL.emailString)
-                            }
-                        })
-                        .buttonStyle(SectionButtonStyle())
-                        .contextMenu {
-                            Button("Copy") {
-                                NSPasteboard.general.clearContents()
-                                NSPasteboard.general.setString(URL.emailString, forType: .string)
-                            }
-                        }
-                    }
-                    
-                    SettingsSection(title: "") {
-                        PromotionBadge()
-                    }
-
-                    SettingsSection(title: "") {
-                        FeedbackButton()
-                    }
-                }
-                
                 SettingsSection(title: "Privacy") {
                     HStack {
-                        Text("Privacy Content".i18n())
+                        Text("Settings and input-source rules are stored locally on this Mac.")
                             .multilineTextAlignment(.leading)
                             .padding()
                             .opacity(0.8)
@@ -435,178 +349,5 @@ struct GeneralSettingsView: View {
         alert.informativeText = message
         alert.addButton(withTitle: "OK")
         alert.runModal()
-    }
-}
-
-private struct RefinePromotionCard: View {
-    @Environment(\.colorScheme) private var colorScheme
-    @State private var iconImage: NSImage?
-
-    private let websiteURL = URL(string: "https://refine.sh?utm_source=inputsourcepro")!
-
-    private var iconURL: URL {
-        URL(string: colorScheme == .dark ? "https://refine.sh/icon-dark.png" : "https://refine.sh/icon.png")!
-    }
-
-    var body: some View {
-        Button(action: {
-            NSWorkspace.shared.open(websiteURL)
-        }) {
-            HStack(alignment: .center, spacing: 12) {
-                if let iconImage {
-                    Image(nsImage: iconImage)
-                        .resizable()
-                        .interpolation(.high)
-                        .antialiased(true)
-                        .frame(width: 48, height: 48)
-                } else {
-                    RoundedRectangle(cornerRadius: 10)
-                        .fill(Color.gray.opacity(0.2))
-                        .frame(width: 48, height: 48)
-                }
-
-                VStack(alignment: .leading, spacing: 4) {
-                    Text("Refine")
-                        .font(.system(size: 13, weight: .medium))
-                        .foregroundColor(.primary)
-
-                    Text("An AI-powered grammar checker that runs 100% locally".i18n())
-                        .font(.system(size: 13))
-                        .foregroundColor(.secondary)
-                        .lineLimit(2)
-                }
-
-                Spacer()
-
-                Image(systemName: "arrow.up.forward.square")
-                    .font(.system(size: 12))
-                    .foregroundColor(.secondary.opacity(0.6))
-            }
-            .padding(.vertical, 8)
-            .padding(.horizontal)
-            .contentShape(Rectangle())
-        }
-        .buttonStyle(.plain)
-        .task(id: iconURL) {
-            await loadIcon()
-        }
-    }
-
-    @MainActor
-    private func loadIcon() async {
-        iconImage = nil
-
-        let request = URLRequest(
-            url: iconURL,
-            cachePolicy: .returnCacheDataElseLoad,
-            timeoutInterval: 30
-        )
-
-        guard let (data, _) = try? await URLSession.shared.data(for: request),
-              !Task.isCancelled,
-              let image = NSImage(data: data)
-        else { return }
-
-        iconImage = image
-    }
-}
-
-private struct ScriptableSettingsImportGuideView: View {
-    @Binding var isPresented: Bool
-
-    @State private var didCopy = false
-    @State private var silent = false
-
-    private var command: String {
-        let url = "inputsourcepro://import?path=/absolute/path/settings.json"
-        let query = silent ? "&silent=1" : ""
-        return "open \"\(url)\(query)\""
-    }
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: 18) {
-            header
-
-            commandBox
-
-            HStack {
-                HStack(spacing: 6) {
-                    Toggle("", isOn: $silent)
-                        .toggleStyle(.checkbox)
-                        .labelsHidden()
-                        .allowsHitTesting(false)
-
-                    Text("Scriptable Import Silent".i18n())
-                }
-                .contentShape(Rectangle())
-                .onTapGesture { silent.toggle() }
-
-                Spacer()
-
-                Button(action: copyCommand) {
-                    HStack(spacing: 5) {
-                        SwiftUI.Image(systemName: didCopy ? "checkmark" : "doc.on.doc")
-                        Text("Copy".i18n())
-                    }
-                }
-                .help("Copy".i18n())
-
-                Button("Done".i18n(), action: { isPresented = false })
-                    .keyboardShortcut(.defaultAction)
-            }
-        }
-        .lineLimit(nil)
-        .fixedSize(horizontal: false, vertical: true)
-        .padding(24)
-        .frame(width: 520)
-    }
-
-    private var header: some View {
-        HStack(alignment: .top, spacing: 12) {
-            SwiftUI.Image(systemName: "terminal")
-                .font(.system(size: 20, weight: .semibold))
-                .foregroundColor(.accentColor)
-                .frame(width: 40, height: 40)
-                .background(
-                    Circle()
-                        .fill(Color.accentColor.opacity(0.12))
-                )
-
-            VStack(alignment: .leading, spacing: 4) {
-                Text("Scriptable Import Title".i18n())
-                    .font(.title2)
-                    .fontWeight(.semibold)
-
-                Text("Scriptable Import Summary".i18n())
-                    .font(.callout)
-                    .foregroundColor(.secondary)
-            }
-        }
-    }
-
-    private var commandBox: some View {
-        Text(command)
-            .font(.system(size: 13, design: .monospaced))
-            .foregroundColor(.primary)
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .padding(12)
-        .background(
-            RoundedRectangle(cornerRadius: 8)
-                .fill(Color.primary.opacity(0.055))
-        )
-        .overlay(
-            RoundedRectangle(cornerRadius: 8)
-                .stroke(Color.primary.opacity(0.08), lineWidth: 1)
-        )
-    }
-
-    private func copyCommand() {
-        NSPasteboard.general.clearContents()
-        NSPasteboard.general.setString(command, forType: .string)
-        didCopy = true
-
-        DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) {
-            didCopy = false
-        }
     }
 }

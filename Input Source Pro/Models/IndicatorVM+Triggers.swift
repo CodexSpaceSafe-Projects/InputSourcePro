@@ -1,7 +1,5 @@
 import AppKit
-import AXSwift
 import Combine
-import CombineExt
 
 extension IndicatorVM {
     @MainActor

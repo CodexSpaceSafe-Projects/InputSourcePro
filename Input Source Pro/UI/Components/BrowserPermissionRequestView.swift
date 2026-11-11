@@ -7,8 +7,6 @@ struct BrowserPermissionRequestView: View {
 
     @Binding var isPresented: Bool
 
-    @State var isDisableTips: Bool = true
-
     var onSuccess: () -> Void
 
     let timer = Timer
@@ -53,14 +51,6 @@ struct BrowserPermissionRequestView: View {
                 .padding(.vertical, 10)
 
             HStack {
-                Button(action: URL.howToEnableBrowserRule.open) {
-                    SwiftUI.Image(systemName: "questionmark")
-                }
-                .font(.system(size: 10).weight(.bold))
-                .frame(width: 18, height: 18)
-                .clipShape(RoundedRectangle(cornerRadius: 99))
-                .disabled(isDisableTips)
-
                 Spacer()
 
                 Button("Close", action: close)
@@ -71,11 +61,6 @@ struct BrowserPermissionRequestView: View {
         .fixedSize(horizontal: false, vertical: true)
         .padding()
         .frame(width: 400)
-        .onAppear {
-            DispatchQueue.main.async {
-                isDisableTips = false
-            }
-        }
         .onChange(of: permissionsVM.isAccessibilityEnabled) { _ in
             onAuthorizeSuccess()
         }

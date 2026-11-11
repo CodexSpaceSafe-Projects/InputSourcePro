@@ -61,9 +61,10 @@ struct IndicatorViewConfig {
 
         containerView.layer?.cornerRadius = 8
 
-        containerView.snp.makeConstraints {
-            $0.width.height.equalTo(8)
-        }
+        NSLayoutConstraint.activate([
+            containerView.widthAnchor.constraint(equalToConstant: 8),
+            containerView.heightAnchor.constraint(equalToConstant: 8),
+        ])
 
         return containerView
     }
@@ -113,16 +114,13 @@ struct IndicatorViewConfig {
         stackView.alignment = .centerY
         containerView.addSubview(stackView)
 
-        stackView.snp.makeConstraints { make in
-            switch size {
-            case .small:
-                make.edges.equalToSuperview().inset(NSEdgeInsets(top: 3, left: 3, bottom: 3, right: 3))
-            case .medium:
-                make.edges.equalToSuperview().inset(NSEdgeInsets(top: 4, left: 4, bottom: 4, right: 4))
-            case .large:
-                make.edges.equalToSuperview().inset(NSEdgeInsets(top: 6, left: 6, bottom: 6, right: 6))
-            }
+        let inset: CGFloat
+        switch size {
+        case .small: inset = 3
+        case .medium: inset = 4
+        case .large: inset = 6
         }
+        pinEdges(of: stackView, to: containerView, inset: inset)
 
         return containerView
     }
@@ -136,9 +134,7 @@ struct IndicatorViewConfig {
         containerView.layer?.cornerRadius = 4
         containerView.addSubview(stackView)
 
-        stackView.snp.makeConstraints { make in
-            make.edges.equalToSuperview().inset(NSEdgeInsets(top: 3, left: 3, bottom: 3, right: 3))
-        }
+        pinEdges(of: stackView, to: containerView, inset: 3)
 
         return containerView
     }
@@ -159,10 +155,11 @@ struct IndicatorViewConfig {
         divider.layer?.backgroundColor = textColor?.cgColor
         divider.alphaValue = 0.15
         divider.setAccessibilityElement(false)
-        divider.snp.makeConstraints {
-            $0.width.equalTo(0.5)
-            $0.height.equalTo(leadingIconWidth * 0.75)
-        }
+        divider.translatesAutoresizingMaskIntoConstraints = false
+        NSLayoutConstraint.activate([
+            divider.widthAnchor.constraint(equalToConstant: 0.5),
+            divider.heightAnchor.constraint(equalToConstant: leadingIconWidth * 0.75),
+        ])
 
         return [marker, divider] + content
     }
@@ -212,13 +209,14 @@ struct IndicatorViewConfig {
         badgeView.layer?.masksToBounds = true
         badgeView.addSubview(glyphView)
 
-        glyphView.snp.makeConstraints { make in
-            make.center.equalToSuperview()
-        }
-
-        badgeView.snp.makeConstraints { make in
-            make.size.equalTo(badgeSize)
-        }
+        glyphView.translatesAutoresizingMaskIntoConstraints = false
+        badgeView.translatesAutoresizingMaskIntoConstraints = false
+        NSLayoutConstraint.activate([
+            glyphView.centerXAnchor.constraint(equalTo: badgeView.centerXAnchor),
+            glyphView.centerYAnchor.constraint(equalTo: badgeView.centerYAnchor),
+            badgeView.widthAnchor.constraint(equalToConstant: badgeSize.width),
+            badgeView.heightAnchor.constraint(equalToConstant: badgeSize.height),
+        ])
 
         return badgeView
     }
@@ -257,14 +255,15 @@ struct IndicatorViewConfig {
 
         imageView.contentTintColor = textColor
 
-        imageView.snp.makeConstraints { make in
-            let size = imageView.image?.size ?? .zero
-            let ratio = size.width > 0 ? size.height / size.width : 1
-            let width = leadingIconWidth
-            let height = ratio * width
-
-            make.size.equalTo(CGSize(width: width, height: height))
-        }
+        let size = imageView.image?.size ?? .zero
+        let ratio = size.width > 0 ? size.height / size.width : 1
+        let width = leadingIconWidth
+        let height = ratio * width
+        imageView.translatesAutoresizingMaskIntoConstraints = false
+        NSLayoutConstraint.activate([
+            imageView.widthAnchor.constraint(equalToConstant: width),
+            imageView.heightAnchor.constraint(equalToConstant: height),
+        ])
 
         return imageView
     }
@@ -303,14 +302,14 @@ struct IndicatorViewConfig {
         view.layer?.backgroundColor = textColor?.cgColor
         view.layer?.cornerRadius = 2
 
-        labelView.snp.makeConstraints {
-            $0.center.equalTo(view)
-        }
-
-        view.snp.makeConstraints {
-//      $0.width.equalTo(22)
-            $0.width.height.equalTo(16)
-        }
+        labelView.translatesAutoresizingMaskIntoConstraints = false
+        view.translatesAutoresizingMaskIntoConstraints = false
+        NSLayoutConstraint.activate([
+            labelView.centerXAnchor.constraint(equalTo: view.centerXAnchor),
+            labelView.centerYAnchor.constraint(equalTo: view.centerYAnchor),
+            view.widthAnchor.constraint(equalToConstant: 16),
+            view.heightAnchor.constraint(equalToConstant: 16),
+        ])
 
         labelView.textColor = bgColor
         labelView.font = .systemFont(ofSize: labelName.count > 1 ? 10 : 11, weight: .regular)
@@ -325,8 +324,19 @@ struct IndicatorViewConfig {
         return marker
     }
 
+    private func pinEdges(of view: NSView, to container: NSView, inset: CGFloat) {
+        view.translatesAutoresizingMaskIntoConstraints = false
+        NSLayoutConstraint.activate([
+            view.leadingAnchor.constraint(equalTo: container.leadingAnchor, constant: inset),
+            view.trailingAnchor.constraint(equalTo: container.trailingAnchor, constant: -inset),
+            view.topAnchor.constraint(equalTo: container.topAnchor, constant: inset),
+            view.bottomAnchor.constraint(equalTo: container.bottomAnchor, constant: -inset),
+        ])
+    }
+
     private func getContainerView() -> NSView {
         let containerView = NSView()
+        containerView.translatesAutoresizingMaskIntoConstraints = false
 
         containerView.wantsLayer = true
         containerView.setValue(bgColor, forKey: "backgroundColor")

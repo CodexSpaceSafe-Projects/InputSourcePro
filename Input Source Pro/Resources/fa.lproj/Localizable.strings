@@ -1,7 +1,6 @@
 "Input Source Pro" = "Input Source Pro";
 "Preferences" = "تنظیمات";
 "Changelog" = "تاریخچهٔ تغییرات";
-"Check for Updates" = "بررسی به‌روزرسانی‌ها";
 "Buy me a bubble tea" = "برایم یک بابل‌تی بخرید";
 "Join Our Community" = "پیوستن به انجمن ما";
 "Quit" = "خروج";
@@ -10,12 +9,7 @@
 "Default Keyboard Tooltip" = "خالی بگذارید (پیش‌فرض) تا Input Source Pro صفحه‌کلید را تغییر ندهد";
 "Default" = "پیش‌فرض";
 
-"Promotion" = "برنامهٔ Input Source Pro ۱۰۰٪ رایگان است — بدون تبلیغات، بدون خرید درون‌برنامه‌ای و کاملاً متن‌باز. اگر از این برنامه لذت می‌برید، چند روش برای حمایت از توسعهٔ آیندهٔ آن آورده شده است :)";
-"Star on GitHub" = "ستاره دادن در GitHub";
-"Sponsor" = "حمایت مالی";
-"Share with friends" = "اشتراک‌گذاری با دوستان";
 "Also by Runju" = "همچنین از Runju";
-"An AI-powered grammar checker that runs 100% locally" = "بررسی‌کنندهٔ گرامر مبتنی بر هوش مصنوعی که ۱۰۰٪ به‌صورت محلی اجرا می‌شود";
 
 "General" = "عمومی";
 "Rules" = "قوانین";
@@ -168,8 +162,6 @@
 "Default Keyboard for Address Bar" = "صفحه‌کلید پیش‌فرض برای نوار آدرس";
 
 "Version" = "نسخه";
-"Check Updates" = "بررسی به‌روزرسانی‌ها";
-"Automatically Check for Updates" = "بررسی خودکار برای به‌روزرسانی‌ها";
 
 "Support" = "پشتیبانی";
 "Website" = "وب‌سایت";
@@ -183,12 +175,6 @@
 "Find Us" = "ما را پیدا کنید";
 "Right click each section to copy link" = "برای کپی کردن پیوند روی هر بخش راست‌کلیک کنید";
 
-"Send Feedback" = "ارسال بازخورد";
-"FeedbackTips" = "مشتاقانه مایلیم بدانیم چگونه می‌توانیم Input Source Pro را بهتر کنیم. فرم را پر کنید تا با شما در ارتباط باشیم. 🥰";
-"FeedbackMessageTitle" = "پیام";
-"FeedbackMessagePlaceholder" = "باگی پیدا کرده‌اید یا جای خالی قابلیتی را احساس می‌کنید که واقعاً دوست دارید ببینید؟";
-"FeedbackEmailTitle" = "ایمیل (اختیاری)";
-"FeedbackSuccessTips" = "از این‌که وقت گذاشتید و نظراتتان را با ما در میان گذاشتید متشکریم! ❤️";
 
 "Delete" = "حذف";
 "Select Input Sources" = "انتخاب منابع ورودی";
@@ -234,10 +220,6 @@
 "Settings Backup" = "پشتیبان‌گیری از تنظیمات";
 "Export Settings" = "برون‌بری تنظیمات";
 "Import Settings" = "درون‌ریزی تنظیمات";
-"Scriptable Import Entry" = "بازیابی از خط فرمان";
-"Scriptable Import Title" = "درون‌ریزی تنظیمات با یک فرمان";
-"Scriptable Import Summary" = "بازیابی Input Source Pro در یک Mac جدید.";
-"Scriptable Import Silent" = "پنهان کردن پیام موفقیت";
 "Done" = "انجام شد";
 "Settings Exported" = "تنظیمات برون‌بری شد";
 "Settings Exported Message" = "نسخهٔ پشتیبان تنظیمات شما با موفقیت برون‌بری شد.";
@@ -245,7 +227,6 @@
 "Settings Imported Message" = "تنظیمات شما با موفقیت درون‌ریزی شد.";
 "Export Settings Failed" = "برون‌بری تنظیمات ناموفق بود";
 "Import Settings Failed" = "درون‌ریزی تنظیمات ناموفق بود";
-"No valid file path was provided. Use an absolute path, e.g. inputsourcepro://import?path=/path/to/settings.json" = "هیچ مسیر فایل معتبری ارائه نشد. از یک مسیر مطلق استفاده کنید، مانند inputsourcepro://import?path=/path/to/settings.json";
 "Replace Current Settings?" = "تنظیمات فعلی جایگزین شود؟";
 "Import Settings Confirmation Message" = "درون‌ریزی این فایل، تنظیمات پشتیبانی‌شده، قوانین، پیکربندی رنگ‌ها، گروه‌های کلیدهای میان‌بر و میان‌برهای ثبت‌شدهٔ فعلی شما را جایگزین خواهد کرد.";
 "Unsupported settings backup version %@" = "نسخهٔ پشتیبان تنظیمات %@ پشتیبانی نمی‌شود.";
@@ -256,6 +237,3 @@
 "Display When Caps Lock Changes" = "نمایش هنگام تغییر Caps Lock";
 "Display the input source when Caps Lock changes, with a symbol while it is on." = "نمایش منبع ورودی هنگام تغییر Caps Lock، به همراه نمادی هنگام روشن بودن آن.";
 "Caps Lock On" = "روشن بودن Caps Lock";
-
-"Receive beta updates" = "دریافت به‌روزرسانی‌های بتا";
-"Stable updates resume when a newer stable build is available." = "به‌روزرسانی‌های پایدار زمانی از سر گرفته می‌شوند که نسخهٔ پایدار جدیدتری در دسترس باشد.";

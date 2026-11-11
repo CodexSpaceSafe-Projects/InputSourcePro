@@ -64,9 +64,6 @@ struct TroubleshootingSettingsView: View {
                     CursorLagFixView()
                 }
 
-                SettingsSection(title: "") {
-                    FeedbackButton()
-                }
             }
             .padding()
         }

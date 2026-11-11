@@ -1,4 +1,3 @@
-import KeyboardShortcuts
 import XCTest
 @testable import Input_Source_Pro
 

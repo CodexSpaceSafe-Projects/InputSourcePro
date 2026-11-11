@@ -1,5 +1,4 @@
 import AppKit
-import AXSwift
 import Foundation
 
 extension PreferencesVM {

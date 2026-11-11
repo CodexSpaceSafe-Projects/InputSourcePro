@@ -1,5 +1,4 @@
 import AppKit
-import AXSwift
 
 // Update BrowserThatCanWatchBrowserAddressFocus as well
 enum Browser: String, CaseIterable {

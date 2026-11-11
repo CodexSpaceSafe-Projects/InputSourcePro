@@ -1,7 +1,5 @@
 import AppKit
-import AXSwift
 import Combine
-import CombineExt
 
 // MARK: - Default indicator: auto hide
 

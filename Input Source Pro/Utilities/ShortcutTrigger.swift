@@ -1,7 +1,6 @@
 import AppKit
 import Carbon
 import Combine
-import KeyboardShortcuts
 
 enum ShortcutTriggerMode: String, CaseIterable, Identifiable, Codable {
     case keyboardShortcut

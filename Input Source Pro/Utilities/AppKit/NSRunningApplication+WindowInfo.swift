@@ -1,5 +1,4 @@
 import AppKit
-import AXSwift
 import Combine
 import Foundation
 
@@ -77,7 +76,7 @@ private func focusedWindowBounds(processIdentifier: pid_t) -> CGRect? {
     guard AXIsProcessTrusted(), let application = Application(forProcessID: processIdentifier) else { return nil }
     AXUIElementSetMessagingTimeout(application.element, 0.15)
 
-    for attribute in [AXSwift.Attribute.focusedWindow, .mainWindow] {
+    for attribute in [Attribute.focusedWindow, .mainWindow] {
         do {
             guard let window: UIElement = try application.attribute(attribute) else { continue }
             AXUIElementSetMessagingTimeout(window.element, 0.15)

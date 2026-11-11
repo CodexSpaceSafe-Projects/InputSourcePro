@@ -1,5 +1,4 @@
 import SwiftUI
-import VisualEffects
 
 struct PreferencesView: View {
     @EnvironmentObject var navigationVM: NavigationVM
@@ -11,7 +10,7 @@ struct PreferencesView: View {
     var body: some View {
         return HStack(spacing: 0) {
             ZStack {
-                VisualEffectBlur(material: .sidebar, blendingMode: .behindWindow, state: .followsWindowActiveState)
+                NativeVisualEffectView(material: .sidebar, blendingMode: .behindWindow, state: .followsWindowActiveState)
 
                 HStack {
                     VStack {
@@ -109,7 +108,6 @@ struct PreferencesView: View {
             asyncSelection = navigationVM.selection
         }
         .edgesIgnoringSafeArea(.top)
-        .modifier(FeedbackModal())
     }
 }
 

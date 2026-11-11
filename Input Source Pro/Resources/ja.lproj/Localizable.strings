@@ -1,7 +1,6 @@
 "Input Source Pro" = "Input Source Pro";
 "Preferences" = "設定";
 "Changelog" = "変更ログ";
-"Check for Updates" = "アップデートを確認";
 "Buy me a bubble tea" = "Buy Me a Bubble Tea";
 "Join Our Community" = "私たちのコミュニティに参加";
 "Quit" = "終了";
@@ -10,12 +9,7 @@
 "Default Keyboard Tooltip" = "空白のまま (デフォルト) にしておくと、Input Source Pro はキーボードを切り替えません";
 "Default" = "デフォルト";
 
-"Promotion" = "Input Source Pro は完全無料です — 広告なし、アプリ内課金なし、そして完全オープンソースです。アプリを気に入っていただけたら、将来の開発を支援する方法をご紹介します ;)";
-"Star on GitHub" = "GitHub でスターを付ける";
-"Sponsor" = "スポンサーになる";
-"Share with friends" = "友達と共有する";
 "Also by Runju" = "Runjuの他のアプリ";
-"An AI-powered grammar checker that runs 100% locally" = "AI搭載の文法チェッカーで、100%ローカルで動作します";
 
 "General" = "一般";
 "Rules" = "ルール";
@@ -168,8 +162,6 @@
 "Default Keyboard for Address Bar" = "アドレスバー用のデフォルトキーボード";
 
 "Version" = "バージョン";
-"Check Updates" = "アップデートを確認";
-"Automatically Check for Updates" = "自動的にアップデートを確認";
 
 "Support" = "サポート";
 "Website" = "ウェブサイト";
@@ -183,12 +175,6 @@
 "Find Us" = "私たちを見つける";
 "Right click each section to copy link" = "各セクションを右クリックしてリンクをコピー";
 
-"Send Feedback" = "フィードバックを送信";
-"FeedbackTips" = "Input Source Proをより良いものにする方法についてお聞かせいただけると嬉しいです。フォームに記入していただければ、こちらからご連絡いたします🥰。";
-"FeedbackMessageTitle" = "メッセージ";
-"FeedbackMessagePlaceholder" = "バグが見つかったり、ぜひ実現してほしい機能があったりしますか？";
-"FeedbackEmailTitle" = "メール（任意）";
-"FeedbackSuccessTips" = "ご意見をお寄せいただき、ありがとうございます！❤️";
 
 "Delete" = "削除";
 "Select Input Sources" = "入力ソースを選択";
@@ -234,10 +220,6 @@
 "Settings Backup" = "設定バックアップ";
 "Export Settings" = "設定を書き出す";
 "Import Settings" = "設定を読み込む";
-"Scriptable Import Entry" = "コマンドラインから復元";
-"Scriptable Import Title" = "1 つのコマンドで設定を読み込む";
-"Scriptable Import Summary" = "新しい Mac で Input Source Pro を復元します。";
-"Scriptable Import Silent" = "成功メッセージを表示しない";
 "Done" = "完了";
 "Settings Exported" = "設定を書き出しました";
 "Settings Exported Message" = "設定バックアップを正常に書き出しました。";
@@ -245,7 +227,6 @@
 "Settings Imported Message" = "設定を正常に読み込みました。";
 "Export Settings Failed" = "設定の書き出しに失敗しました";
 "Import Settings Failed" = "設定の読み込みに失敗しました";
-"No valid file path was provided. Use an absolute path, e.g. inputsourcepro://import?path=/path/to/settings.json" = "有効なファイルパスが指定されていません。絶対パスを使用してください。例: inputsourcepro://import?path=/path/to/settings.json";
 "Replace Current Settings?" = "現在の設定を置き換えますか？";
 "Import Settings Confirmation Message" = "このファイルを読み込むと、現在サポートされている設定、ルール、カラー設定、ホットキーグループ、記録済みショートカットが置き換えられます。";
 "Unsupported settings backup version %@" = "サポートされていない設定バックアップバージョン %@ です。";
@@ -256,6 +237,3 @@
 "Display When Caps Lock Changes" = "Caps Lock の切り替え時に表示";
 "Display the input source when Caps Lock changes, with a symbol while it is on." = "Caps Lock の切り替え時に入力ソースを表示し、オンの間はマークを添えます。";
 "Caps Lock On" = "Caps Lock オン";
-
-"Receive beta updates" = "ベータ版のアップデートを受け取る";
-"Stable updates resume when a newer stable build is available." = "より新しい安定版のビルドが公開されると、安定版の更新が再開されます。";

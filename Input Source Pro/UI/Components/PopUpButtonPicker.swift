@@ -43,9 +43,8 @@ struct PopUpButtonPicker<Item: Equatable>: NSViewRepresentable {
         popUpButton.action = #selector(Coordinator.selectItem(_:))
 
         if let width = width {
-            popUpButton.snp.makeConstraints { make in
-                make.width.equalTo(width)
-            }
+            popUpButton.translatesAutoresizingMaskIntoConstraints = false
+            popUpButton.widthAnchor.constraint(equalToConstant: width).isActive = true
         }
 
         return popUpButton

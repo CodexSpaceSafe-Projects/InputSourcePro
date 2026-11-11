@@ -1,9 +1,6 @@
 import AppKit
-import AXSwift
 import Carbon
 import Combine
-import CombineExt
-import SnapKit
 
 @MainActor
 class IndicatorWindowController: FloatWindowController {

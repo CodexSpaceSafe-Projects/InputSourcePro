@@ -56,7 +56,7 @@ struct BrowserRuleEditView: View {
                     HStack {
                         Text("Sample URL".i18n() + ":")
                             .alignedView(width: $width, alignment: .trailing)
-                        TextField("https://www.twitter.com/runjuuu", text: $sampleValue)
+                        TextField("https://example.com", text: $sampleValue)
                     }
 
                     HStack {

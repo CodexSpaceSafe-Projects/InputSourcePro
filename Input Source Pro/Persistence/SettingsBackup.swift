@@ -1,6 +1,5 @@
 import CoreData
 import Foundation
-import KeyboardShortcuts
 
 enum SettingsBackupError: LocalizedError {
     case unsupportedSchemaVersion(Int)

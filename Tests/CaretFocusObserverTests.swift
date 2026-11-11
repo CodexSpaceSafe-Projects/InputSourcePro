@@ -1,5 +1,4 @@
 import AppKit
-import AXSwift
 import XCTest
 @testable import Input_Source_Pro
 
@@ -108,13 +107,13 @@ final class CaretFocusObserverTests: XCTestCase {
     }
 
     func testAXSwiftFailedCreationThrowsInsteadOfCrashing() {
-        XCTAssertThrowsError(try AXSwift.Observer(processID: -1) { _, _, _ in }) { error in
+        XCTAssertThrowsError(try Observer(processID: -1) { _, _, _ in }) { error in
             XCTAssertEqual(error as? AXError, .illegalArgument)
         }
     }
 
     func testAXSwiftFailedCreationWithInfoThrowsInsteadOfCrashing() {
-        XCTAssertThrowsError(try AXSwift.Observer(processID: -1) { _, _, _, _ in }) { error in
+        XCTAssertThrowsError(try Observer(processID: -1) { _, _, _, _ in }) { error in
             XCTAssertEqual(error as? AXError, .illegalArgument)
         }
     }

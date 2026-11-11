@@ -7,7 +7,6 @@ class PreferencesWindowController: NSWindowController {
     let permissionsVM: PermissionsVM
     let preferencesVM: PreferencesVM
     let indicatorVM: IndicatorVM
-    let feedbackVM: FeedbackVM
     let inputSourceVM: InputSourceVM
 
     init(
@@ -15,14 +14,12 @@ class PreferencesWindowController: NSWindowController {
         permissionsVM: PermissionsVM,
         preferencesVM: PreferencesVM,
         indicatorVM: IndicatorVM,
-        feedbackVM: FeedbackVM,
         inputSourceVM: InputSourceVM
     ) {
         self.navigationVM = navigationVM
         self.permissionsVM = permissionsVM
         self.preferencesVM = preferencesVM
         self.indicatorVM = indicatorVM
-        self.feedbackVM = feedbackVM
         self.inputSourceVM = inputSourceVM
 
         let window = NSWindow(
@@ -32,7 +29,6 @@ class PreferencesWindowController: NSWindowController {
                     .environmentObject(preferencesVM)
                     .environmentObject(indicatorVM)
                     .environmentObject(permissionsVM)
-                    .environmentObject(feedbackVM)
                     .environmentObject(inputSourceVM)
             )
         )

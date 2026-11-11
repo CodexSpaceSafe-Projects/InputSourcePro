@@ -1,11 +1,11 @@
 import AppKit
-import RxRelay
+import Combine
 
 class FocusAwareTextField: NSTextField {
-    let focus$ = PublishRelay<Bool>()
+    let focus$ = PassthroughSubject<Bool, Never>()
 
     override func becomeFirstResponder() -> Bool {
-        focus$.accept(true)
+        focus$.send(true)
         return super.becomeFirstResponder()
     }
 }

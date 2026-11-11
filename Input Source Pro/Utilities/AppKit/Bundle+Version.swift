@@ -1,12 +1,8 @@
 import AppKit
 
 extension Bundle {
-    var isBetaBuild: Bool {
-        infoDictionary?["ISPReleaseChannel"] as? String == "beta"
-    }
-
     var displayVersion: String {
-        isBetaBuild ? "Beta" : shortVersion
+        shortVersion
     }
 
     var shortVersion: String {

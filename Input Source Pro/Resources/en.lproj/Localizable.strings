@@ -1,7 +1,6 @@
 "Input Source Pro" = "Input Source Pro";
 "Preferences" = "Settings";
 "Changelog" = "Changelog";
-"Check for Updates" = "Check for Updates";
 "Buy me a bubble tea" = "Buy Me a Bubble Tea";
 "Join Our Community" = "Join Our Community";
 "Quit" = "Quit";
@@ -10,12 +9,7 @@
 "Default Keyboard Tooltip" = "Leave blank (default) and Input Source Pro won't switch keyboards";
 "Default" = "Default";
 
-"Promotion" = "Input Source Pro is 100% free — no ads, no in-app purchases, and fully open source. If you enjoy the app, here are some ways to support its future development :)";
-"Star on GitHub" = "Star on GitHub";
-"Sponsor" = "Sponsor";
-"Share with friends" = "Share with friends";
 "Also by Runju" = "Also by Runju";
-"An AI-powered grammar checker that runs 100% locally" = "An AI-powered grammar checker that runs 100% locally";
 
 "General" = "General";
 "Rules" = "Rules";
@@ -168,8 +162,6 @@
 "Default Keyboard for Address Bar" = "Default Keyboard for Address Bar";
 
 "Version" = "Version";
-"Check Updates" = "Check Updates";
-"Automatically Check for Updates" = "Automatically Check for Updates";
 
 "Support" = "Support";
 "Website" = "Website";
@@ -183,12 +175,6 @@
 "Find Us" = "Find Us";
 "Right click each section to copy link" = "right click each section to copy link";
 
-"Send Feedback" = "Send Feedback";
-"FeedbackTips" = "We'd love to hear how we can make Input Source Pro better. Fill out the form and we'll get back to you. 🥰";
-"FeedbackMessageTitle" = "Message";
-"FeedbackMessagePlaceholder" = "Found a bug or missing a feature you really want to see?";
-"FeedbackEmailTitle" = "Email(Optional)";
-"FeedbackSuccessTips" = "Thank you for taking the time to share your thoughts with us! ❤️";
 
 "Delete" = "Delete";
 "Select Input Sources" = "Select Input Sources";
@@ -234,10 +220,6 @@
 "Settings Backup" = "Settings Backup";
 "Export Settings" = "Export Settings";
 "Import Settings" = "Import Settings";
-"Scriptable Import Entry" = "Restore from the command line";
-"Scriptable Import Title" = "Import settings with one command";
-"Scriptable Import Summary" = "Restore Input Source Pro on a new Mac.";
-"Scriptable Import Silent" = "Hide the success message";
 "Done" = "Done";
 "Settings Exported" = "Settings Exported";
 "Settings Exported Message" = "Your settings backup was exported successfully.";
@@ -245,7 +227,6 @@
 "Settings Imported Message" = "Your settings were imported successfully.";
 "Export Settings Failed" = "Export Settings Failed";
 "Import Settings Failed" = "Import Settings Failed";
-"No valid file path was provided. Use an absolute path, e.g. inputsourcepro://import?path=/path/to/settings.json" = "No valid file path was provided. Use an absolute path, e.g. inputsourcepro://import?path=/path/to/settings.json";
 "Replace Current Settings?" = "Replace Current Settings?";
 "Import Settings Confirmation Message" = "Importing this file will replace your current supported settings, rules, color configs, hot key groups, and recorded shortcuts.";
 "Unsupported settings backup version %@" = "Unsupported settings backup version %@.";
@@ -256,6 +237,3 @@
 "Display When Caps Lock Changes" = "Display When Caps Lock Changes";
 "Display the input source when Caps Lock changes, with a symbol while it is on." = "Display the input source when Caps Lock changes, with a symbol while it is on.";
 "Caps Lock On" = "Caps Lock On";
-
-"Receive beta updates" = "Receive beta updates";
-"Stable updates resume when a newer stable build is available." = "Stable updates resume when a newer stable build is available.";

@@ -1,5 +1,4 @@
 import AppKit
-import SnapKit
 
 @MainActor
 class IndicatorViewController: NSViewController {
@@ -14,6 +13,8 @@ class IndicatorViewController: NSViewController {
     private let layout: Layout
     private var displayMode: DisplayMode = .normal
     private var caretContentOffset = CGPoint.zero
+    private var alwaysOnLeadingConstraint: NSLayoutConstraint?
+    private var alwaysOnBottomConstraint: NSLayoutConstraint?
     let hoverableView = NSViewHoverable(frame: .zero)
 
     private(set) var config: IndicatorViewConfig? = nil {
@@ -41,19 +42,22 @@ class IndicatorViewController: NSViewController {
             if let normalView = normalView {
                 view.addSubview(normalView)
 
-                normalView.snp.makeConstraints { make in
-                    let size = normalView.fittingSize
-
-                    switch layout {
-                    case .floatingWindow:
-                        make.leading.bottom.equalToSuperview()
-                    case .preview:
-                        // SwiftUI needs the full content bounds to size and align previews.
-                        make.edges.equalToSuperview()
-                    }
-                    make.width.equalTo(size.width)
-                    make.height.equalTo(size.height)
+                let size = normalView.fittingSize
+                normalView.translatesAutoresizingMaskIntoConstraints = false
+                var constraints = [
+                    normalView.leadingAnchor.constraint(equalTo: view.leadingAnchor),
+                    normalView.bottomAnchor.constraint(equalTo: view.bottomAnchor),
+                    normalView.widthAnchor.constraint(equalToConstant: size.width),
+                    normalView.heightAnchor.constraint(equalToConstant: size.height),
+                ]
+                if case .preview = layout {
+                    // SwiftUI needs the full content bounds to size and align previews.
+                    constraints += [
+                        normalView.topAnchor.constraint(equalTo: view.topAnchor),
+                        normalView.trailingAnchor.constraint(equalTo: view.trailingAnchor),
+                    ]
                 }
+                NSLayoutConstraint.activate(constraints)
             }
         }
     }
@@ -61,15 +65,23 @@ class IndicatorViewController: NSViewController {
     private(set) var alwaysOnView: NSView? = nil {
         didSet {
             oldValue?.removeFromSuperview()
+            alwaysOnLeadingConstraint = nil
+            alwaysOnBottomConstraint = nil
 
             if let alwaysOnView = alwaysOnView {
                 alwaysOnView.alphaValue = 0
                 view.addSubview(alwaysOnView)
 
-                alwaysOnView.snp.makeConstraints { make in
-                    make.leading.equalToSuperview().offset(caretContentOffset.x)
-                    make.bottom.equalToSuperview().offset(-caretContentOffset.y)
-                }
+                alwaysOnView.translatesAutoresizingMaskIntoConstraints = false
+                let leading = alwaysOnView.leadingAnchor.constraint(
+                    equalTo: view.leadingAnchor, constant: caretContentOffset.x
+                )
+                let bottom = alwaysOnView.bottomAnchor.constraint(
+                    equalTo: view.bottomAnchor, constant: -caretContentOffset.y
+                )
+                NSLayoutConstraint.activate([leading, bottom])
+                alwaysOnLeadingConstraint = leading
+                alwaysOnBottomConstraint = bottom
             }
         }
     }
@@ -127,10 +139,8 @@ class IndicatorViewController: NSViewController {
                 frame = layout.frame
                 caretContentOffset = layout.contentOffset
             }
-            alwaysOnView?.snp.updateConstraints {
-                $0.leading.equalToSuperview().offset(caretContentOffset.x)
-                $0.bottom.equalToSuperview().offset(-caretContentOffset.y)
-            }
+            alwaysOnLeadingConstraint?.constant = caretContentOffset.x
+            alwaysOnBottomConstraint?.constant = -caretContentOffset.y
             window.setFrame(frame, display: true)
             view.layoutSubtreeIfNeeded()
         }

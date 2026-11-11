@@ -1,5 +1,4 @@
 import AppKit
-import AXSwift
 
 private let chromiumSearchBarDescMap = [
     "Aadressi- ja otsinguriba": true,

@@ -51,8 +51,8 @@ Ready to contribute code? Here's how to set up and submit a pull request:
 
 1.  **Fork** the repository on GitHub.
 2.  **Clone** your fork locally: `git clone git@github.com:runjuu/InputSourcePro.git`
-3.  **Open** the project (`Input Source Pro.xcodeproj`) in Xcode 27 or later (Swift 6.4 or later is required by the dependencies).
-4.  Dependencies are managed via Swift Package Manager (SPM) and should resolve automatically when you open the project.
+3.  **Open** the project (`Input Source Pro.xcodeproj`) in Xcode 26 or later. This fork has no third-party Swift package dependencies.
+4.  All runtime components use Apple frameworks; no Swift Package Manager resolution is needed.
 5.  **Build and Run** the project (Cmd+R) to ensure everything is set up correctly.
 
 ### Making Changes

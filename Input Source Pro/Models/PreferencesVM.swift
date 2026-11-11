@@ -1,9 +1,5 @@
 import AppKit
-import AXSwift
 import Combine
-import CombineExt
-import LaunchAtLogin
-import Sparkle
 import SwiftUI
 
 @MainActor
@@ -35,16 +31,7 @@ final class PreferencesVM: ObservableObject {
 
     var permissionsVM: PermissionsVM
 
-    private let updateChannel = UpdateChannelSettings()
-
-    @Published var receivesBetaUpdates = false {
-        didSet { updateChannel.receivesBetaUpdates = receivesBetaUpdates }
-    }
-
-    var updaterController: SPUStandardUpdaterController?
-
-    private(set) var isUserInitiatedUpdateSessionInProgress = false
-    private(set) var updateCheckGeneration = 0
+    @Published var launchAtLoginError: String?
 
     var cancelBag = CancelBag()
 
@@ -63,12 +50,6 @@ final class PreferencesVM: ObservableObject {
 
     let buildStr = "\(Bundle.main.infoDictionary?["CFBundleVersion"] as? String ?? "unknown")"
 
-    @Published
-    var automaticallyChecksForUpdates = false
-
-    @Published
-    var canChecksForUpdates = false
-
     init(permissionsVM: PermissionsVM, container: NSPersistentContainer) {
         self.permissionsVM = permissionsVM
         self.container = container
@@ -81,9 +62,6 @@ final class PreferencesVM: ObservableObject {
             permissionsVM: permissionsVM,
             container: NSPersistentContainer(name: "Main", managedObjectModel: Self.managedObjectModel)
         )
-
-        receivesBetaUpdates = updateChannel.receivesBetaUpdates
-        setupAutoUpdate()
 
         // TODO: - Move to MainStorage
         container.loadPersistentStores { _, error in
@@ -99,7 +77,20 @@ final class PreferencesVM: ObservableObject {
         $preferences
             .map(\.isLaunchAtLogin)
             .removeDuplicates()
-            .sink { LaunchAtLogin.isEnabled = $0 }
+            .sink { [weak self] enabled in
+                do {
+                    try NativeLaunchAtLogin.setEnabled(enabled)
+                    self?.launchAtLoginError = nil
+                } catch {
+                    self?.launchAtLoginError = error.localizedDescription
+                    // Published preferences emit before storing their new value.
+                    // Reconcile after that assignment instead of mutating reentrantly.
+                    DispatchQueue.main.async { [weak self] in
+                        guard let self, self.preferences.isLaunchAtLogin == enabled else { return }
+                        self.update { $0.isLaunchAtLogin = NativeLaunchAtLogin.isEnabled }
+                    }
+                }
+            }
             .store(in: cancelBag)
 
         if preferences.prevInstalledBuildVersion == 0 {
@@ -181,47 +172,6 @@ extension PreferencesVM {
     private func watchKeyboardConfigsChange() {
         mainStorage.keyboardConfigs
             .assign(to: &$keyboardConfigs)
-    }
-}
-
-extension PreferencesVM {
-    private func setupAutoUpdate() {
-        updaterController = SPUStandardUpdaterController(
-            startingUpdater: true,
-            updaterDelegate: updateChannel,
-            userDriverDelegate: nil
-        )
-
-        updaterController?.updater
-            .publisher(for: \.sessionInProgress)
-            .filter { !$0 }
-            .sink { [weak self] _ in self?.isUserInitiatedUpdateSessionInProgress = false }
-            .store(in: cancelBag)
-
-        updaterController?.updater
-            .publisher(for: \.automaticallyChecksForUpdates)
-            .removeDuplicates()
-            .assign(to: &$automaticallyChecksForUpdates)
-
-        $automaticallyChecksForUpdates
-            .dropFirst()
-            .sink { [weak self] in self?.updaterController?.updater.automaticallyChecksForUpdates = $0 }
-            .store(in: cancelBag)
-
-        updaterController?.updater
-            .publisher(for: \.canCheckForUpdates)
-            .debounce(for: 0.5, scheduler: DispatchQueue.main)
-            .assign(to: &$canChecksForUpdates)
-    }
-
-    func checkUpdates() {
-        guard let updater = updaterController?.updater, updater.canCheckForUpdates else { return }
-        updateCheckGeneration += 1
-        isUserInitiatedUpdateSessionInProgress = true
-        updater.checkForUpdates()
-        if !updater.sessionInProgress {
-            isUserInitiatedUpdateSessionInProgress = false
-        }
     }
 }
 
@@ -394,7 +344,7 @@ struct Preferences {
     // MARK: - General
 
     @UserDefault(Preferences.Key.isLaunchAtLogin)
-    var isLaunchAtLogin = LaunchAtLogin.isEnabled
+    var isLaunchAtLogin = NativeLaunchAtLogin.isEnabled
 
     @UserDefault(Preferences.Key.isShowIconInMenuBar)
     var isShowIconInMenuBar = true
@@ -786,32 +736,5 @@ extension PreferencesVM {
 
     func needDisplayEnhancedModePrompt(bundleIdentifier: String?) -> Bool {
         NSApplication.isFloatingApp(bundleIdentifier) && !preferences.isEnhancedModeEnabled
-    }
-}
-
-@MainActor
-final class UpdateChannelSettings: NSObject, SPUUpdaterDelegate {
-    static let preferenceKey = "receivesBetaUpdates"
-    private let defaults: UserDefaults
-
-    init(defaults: UserDefaults = .standard, isBetaBuild: Bool = Bundle.main.isBetaBuild) {
-        self.defaults = defaults
-        super.init()
-        if defaults.object(forKey: Self.preferenceKey) == nil {
-            defaults.set(isBetaBuild, forKey: Self.preferenceKey)
-        }
-    }
-
-    var receivesBetaUpdates: Bool {
-        get { defaults.bool(forKey: Self.preferenceKey) }
-        set { defaults.set(newValue, forKey: Self.preferenceKey) }
-    }
-
-    var feedURL: String {
-        "https://inputsource.pro/\(receivesBetaUpdates ? "beta" : "stable")/appcast.xml"
-    }
-
-    func feedURLString(for updater: SPUUpdater) -> String? {
-        feedURL
     }
 }

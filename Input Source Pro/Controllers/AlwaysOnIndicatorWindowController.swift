@@ -1,11 +1,12 @@
 import AppKit
 import Combine
-import SnapKit
 
 @MainActor
 final class AlwaysOnIndicatorWindowController: FloatWindowController {
     private var cancelBag = CancelBag()
     private(set) var indicatorView: NSView?
+    private var leadingConstraint: NSLayoutConstraint?
+    private var bottomConstraint: NSLayoutConstraint?
 
     var position: CGPoint? {
         didSet { updateVisibility() }
@@ -40,10 +41,16 @@ final class AlwaysOnIndicatorWindowController: FloatWindowController {
             let size = view.fittingSize
             let container = NSView()
             container.addSubview(view)
-            view.snp.makeConstraints {
-                $0.leading.bottom.equalToSuperview()
-                $0.size.equalTo(size)
-            }
+            view.translatesAutoresizingMaskIntoConstraints = false
+            let leading = view.leadingAnchor.constraint(equalTo: container.leadingAnchor)
+            let bottom = view.bottomAnchor.constraint(equalTo: container.bottomAnchor)
+            NSLayoutConstraint.activate([
+                leading, bottom,
+                view.widthAnchor.constraint(equalToConstant: size.width),
+                view.heightAnchor.constraint(equalToConstant: size.height),
+            ])
+            leadingConstraint = leading
+            bottomConstraint = bottom
             indicatorView = view
             window?.contentView = container
             window?.setContentSize(size)
@@ -73,10 +80,8 @@ final class AlwaysOnIndicatorWindowController: FloatWindowController {
         let layout = PixelAlignedWindowLayout(
             origin: NSScreen.pixelAlignedOrigin(origin, near: position), size: size
         )
-        indicatorView.snp.updateConstraints {
-            $0.leading.equalToSuperview().offset(layout.contentOffset.x)
-            $0.bottom.equalToSuperview().offset(-layout.contentOffset.y)
-        }
+        leadingConstraint?.constant = layout.contentOffset.x
+        bottomConstraint?.constant = -layout.contentOffset.y
         window.setFrame(layout.frame, display: true)
         window.contentView?.layoutSubtreeIfNeeded()
 

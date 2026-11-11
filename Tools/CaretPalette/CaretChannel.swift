@@ -32,6 +32,22 @@ enum CaretMessage: Codable, Equatable {
 
 /// A same-user socket with mutually authenticated code identities. No discovery or data broadcasts.
 final class CaretChannel {
+    /// An ad-hoc signature has no publisher identity. Never weaken the helper's
+    /// authentication to a forgeable bundle identifier for an unsigned build.
+    static let signingTeamIdentifier: String? = {
+        var code: SecCode?
+        var staticCode: SecStaticCode?
+        var information: CFDictionary?
+        guard SecCodeCopySelf([], &code) == errSecSuccess, let code,
+              SecCodeCopyStaticCode(code, [], &staticCode) == errSecSuccess, let staticCode,
+              SecCodeCopySigningInformation(staticCode, SecCSFlags(rawValue: kSecCSSigningInformation), &information) == errSecSuccess,
+              let values = information as? [String: Any],
+              let team = values[kSecCodeInfoTeamIdentifier as String] as? String,
+              team.count == 10, team.allSatisfy({ $0.isASCII && ($0.isLetter || $0.isNumber) })
+        else { return nil }
+        return team
+    }()
+
     enum Role {
         case application, helper
 
@@ -39,7 +55,8 @@ final class CaretChannel {
             let identifier = self == .application
                 ? "com.runjuu.Input-Source-Pro.inputmethod.PaletteControl"
                 : "com.runjuu.Input-Source-Pro"
-            return "anchor apple generic and identifier \"\(identifier)\" and certificate leaf[subject.OU] = \"468WY4C4MA\""
+            let team = CaretChannel.signingTeamIdentifier ?? "0000000000"
+            return "anchor apple generic and identifier \"\(identifier)\" and certificate leaf[subject.OU] = \"\(team)\""
         }
 
         func accepts(_ message: CaretMessage) -> Bool {

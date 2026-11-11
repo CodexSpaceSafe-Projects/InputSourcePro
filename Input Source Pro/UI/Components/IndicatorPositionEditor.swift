@@ -1,5 +1,4 @@
 import SwiftUI
-import VisualEffects
 
 struct IndicatorPositionEditor: View {
     @EnvironmentObject var preferencesVM: PreferencesVM

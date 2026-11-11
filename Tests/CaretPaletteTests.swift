@@ -1,6 +1,5 @@
 import AppKit
 import Combine
-import AXSwift
 import XCTest
 @testable import Input_Source_Pro
 

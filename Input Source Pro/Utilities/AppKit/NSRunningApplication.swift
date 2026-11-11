@@ -1,5 +1,4 @@
 import AppKit
-import AXSwift
 import Combine
 
 /// Registers `notifications` on `element` when its role is one of `validRoles`.

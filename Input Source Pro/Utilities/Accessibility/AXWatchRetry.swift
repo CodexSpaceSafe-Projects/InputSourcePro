@@ -1,5 +1,4 @@
 import AppKit
-import AXSwift
 import Combine
 
 /// Retry policy for attaching AX observers.

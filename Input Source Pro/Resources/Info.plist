@@ -18,17 +18,6 @@
 	<string>$(MARKETING_VERSION)</string>
 	<key>CFBundleVersion</key>
 	<string>$(CURRENT_PROJECT_VERSION)</string>
-	<key>CFBundleURLTypes</key>
-	<array>
-		<dict>
-			<key>CFBundleURLName</key>
-			<string>$(PRODUCT_BUNDLE_IDENTIFIER)</string>
-			<key>CFBundleURLSchemes</key>
-			<array>
-				<string>inputsourcepro</string>
-			</array>
-		</dict>
-	</array>
 	<key>LSApplicationCategoryType</key>
 	<string>public.app-category.productivity</string>
 	<key>LSUIElement</key>
@@ -39,16 +28,6 @@
 	<true/>
 	<key>NSHumanReadableCopyright</key>
 	<string></string>
-	<key>NSAppleEventsUsageDescription</key>
-	<string>Input Source Pro needs to monitor keyboard input to automatically switch between English and Chinese punctuation marks based on your app-specific rules.</string>
-	<key>SUEnableAutomaticChecks</key>
-	<true/>
-	<key>ISPReleaseChannel</key>
-	<string>$(RELEASE_CHANNEL)</string>
-	<key>SUFeedURL</key>
-	<string>https://inputsource.pro/stable/appcast.xml</string>
-	<key>SUPublicEDKey</key>
-	<string>oVx6o5OjVhhAmgHLxajfyBWZL+aU0C27ncWAaDl1nXI=</string>
 	<key>UIDesignRequiresCompatibility</key>
 	<true/>
 </dict>
