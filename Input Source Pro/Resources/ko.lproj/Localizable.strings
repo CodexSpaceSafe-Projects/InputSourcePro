@@ -51,7 +51,7 @@
 "CJKV Fix Method Shortcut Simulation" = "단축키 시뮬레이션";
 "CJKV Fix Method Shortcut Simulation Description" = "시스템의 \"이전 입력 소스 선택\" 단축키를 시뮬레이션합니다. macOS 26 이전 버전에서는 잘 작동하지만 macOS 26에서는 예상치 못한 시스템 동작이 발생할 수 있습니다.";
 "CJKV Fix Method Direct Activation" = "직접 활성화 (실험적)";
-"CJKV Fix Method Direct Activation Description" = "[@harukawu](https://github.com/harukawu) 님이 공유한 방법으로 macOS 비공개 API를 사용해 포커스된 앱에서 입력 소스를 직접 활성화합니다. 전환 문제가 해결되는지는 아직 검증하지 않았습니다. 사용해 보시고 [이슈 #85](https://github.com/runjuu/InputSourcePro/issues/85)에 의견을 남겨 주세요.";
+"CJKV Fix Method Direct Activation Description" = "macOS 비공개 API를 사용해 포커스된 앱에서 입력 소스를 직접 활성화합니다.";
 "CJKV Fix Shortcut Method Failed Desc" = "단축키 시뮬레이션 방식을 사용하려면 시스템의 \"이전 입력 소스 선택\" 단축키를 활성화해야 합니다.";
 "Open Keyboard Settings" = "키보드 설정 열기";
 
@@ -157,7 +157,7 @@
 
 "DOMAIN-SUFFIX Explanation" = "도메인 접미사를 이용해 URL을 매칭합니다. 예를 들어: '`google.com`'은 '`www.google.com`', '`mail.google.com`' 그리고 '`google.com`'을 매칭하지만, '`xxx-google.com`'은 매칭하지 **않습니다**.";
 "DOMAIN Explanation" = "정확한 도메인을 이용해 URL을 매칭합니다. 예를 들어: '`google.com`'은 '`google.com`'을 매칭하지만, '`www.google.com`' 또는 '`mail.google.com`'을 매칭하지 **않습니다**.";
-"URL-REGEX Explanation" = "[정규 표현식](https://inputsource.pro/help/regex)을 사용해 URL을 매칭합니다. 특수 문자들은 '`\\`', '`.`' 등을 escape하는 것을 잊지 마세요.";
+"URL-REGEX Explanation" = "정규 표현식을 사용해 URL을 매칭합니다. 특수 문자들은 '`\\`', '`.`' 등을 escape하는 것을 잊지 마세요.";
 
 "Default Keyboard for Address Bar" = "주소창의 기본 키보드";
 

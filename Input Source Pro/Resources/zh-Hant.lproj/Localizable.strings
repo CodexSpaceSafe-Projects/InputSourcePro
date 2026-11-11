@@ -52,7 +52,7 @@
 "CJKV Fix Method Shortcut Simulation" = "模擬快速鍵";
 "CJKV Fix Method Shortcut Simulation Description" = "模擬系統的「選擇上一個輸入法」快速鍵。它在 macOS 26 之前表現穩定，但在 macOS 26 可能引發其他意外的系統行為。";
 "CJKV Fix Method Direct Activation" = "直接啟用（實驗性）";
-"CJKV Fix Method Direct Activation Description" = "採用 [@harukawu](https://github.com/harukawu) 分享的方法，使用 macOS 私有 API 在目前聚焦的應用程式中直接啟用輸入法。我們尚未驗證此方法是否解決了切換問題。歡迎試用，並在 [議題 #85](https://github.com/runjuu/InputSourcePro/issues/85) 中分享回饋。";
+"CJKV Fix Method Direct Activation Description" = "使用 macOS 私有 API，在目前聚焦的應用程式中直接啟用輸入法。";
 "CJKV Fix Shortcut Method Failed Desc" = "「模擬快速鍵」方式需要啟用系統的「選擇上一個輸入法」快速鍵。";
 "Open Keyboard Settings" = "打開「鍵盤」設定";
 
@@ -159,7 +159,7 @@
 
 "DOMAIN-SUFFIX Explanation" = "目前規則會比對網域後綴。比如 `google.com` 符合 `www.google.com`、`mail.google.com` 以及 `google.com` 本身，但**不符合**  `xxx-google.com`。";
 "DOMAIN Explanation" = "目前規則會比對完整網域。比如 `google.com` 只符合 `google.com`，而 `www.google.com`、`mail.google.com` 以及 `xxx-google.com` 均**不符合**。";
-"URL-REGEX Explanation" = "目前規則會使用[正規表示式](https://inputsource.pro/help/regex)進行比對。在使用時請不要忘了對特殊字元（比如 `\\` 符號）進行轉義。";
+"URL-REGEX Explanation" = "目前規則會使用正規表示式進行比對。在使用時請不要忘了對特殊字元（比如 `\\` 符號）進行轉義。";
 
 "Default Keyboard for Address Bar" = "網址列預設輸入法";
 

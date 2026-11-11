@@ -517,6 +517,7 @@ extension PreferencesVM {
     }
 
     func readSettingsBackup(from url: URL) throws -> SettingsBackup {
+        guard url.isFileURL else { throw CocoaError(.fileReadUnsupportedScheme) }
         let data = try Data(contentsOf: url)
         return try Self.decodeSettingsBackup(from: data)
     }

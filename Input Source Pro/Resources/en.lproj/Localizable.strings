@@ -51,7 +51,7 @@
 "CJKV Fix Method Shortcut Simulation" = "Shortcut Simulation";
 "CJKV Fix Method Shortcut Simulation Description" = "Simulates the system's “Select the previous input source” shortcut. This works well before macOS 26, but on macOS 26 it may cause unexpected system behavior.";
 "CJKV Fix Method Direct Activation" = "Direct Activation (Experimental)";
-"CJKV Fix Method Direct Activation Description" = "Uses private macOS APIs to activate the input source directly in the focused app, following an approach shared by [@harukawu](https://github.com/harukawu). We haven’t verified whether this fixes the switching issue. Please try it and share your feedback in [issue #85](https://github.com/runjuu/InputSourcePro/issues/85).";
+"CJKV Fix Method Direct Activation Description" = "Uses private macOS APIs to activate the input source directly in the focused app.";
 "CJKV Fix Shortcut Method Failed Desc" = "Shortcut Simulation requires the system's “Select the previous input source” shortcut to be enabled.";
 "Open Keyboard Settings" = "Open Keyboard Settings";
 
@@ -157,7 +157,7 @@
 
 "DOMAIN-SUFFIX Explanation" = "Match URLs by domain suffixes. For example: '`google.com`' matches '`www.google.com`', '`mail.google.com`' and '`google.com`', but **does not** match '`xxx-google.com`'.";
 "DOMAIN Explanation" = "Match URLs by exact domains. For example: '`google.com`' matches '`google.com`', but **does not** match '`www.google.com`' or '`mail.google.com`'.";
-"URL-REGEX Explanation" = "Match URLs using [regular expressions](https://inputsource.pro/help/regex). Don't forget to escape special characters like '`\\`', '`.`', etc.";
+"URL-REGEX Explanation" = "Match URLs using regular expressions. Don't forget to escape special characters like '`\\`', '`.`', etc.";
 
 "Default Keyboard for Address Bar" = "Default Keyboard for Address Bar";
 

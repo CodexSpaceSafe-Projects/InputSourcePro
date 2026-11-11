@@ -22,6 +22,7 @@ class LoopingPlayerUIView: NSView {
 
     init(url: URL) {
         super.init(frame: .zero)
+        guard url.isFileURL else { return }
 
         // Setup the player
         let player = AVPlayer(url: url)

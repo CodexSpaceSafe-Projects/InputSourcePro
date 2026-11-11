@@ -30,6 +30,7 @@ extension NSWorkspace {
     func desktopImage() -> NSImage? {
         guard let mainScreen = NSScreen.main,
               let url = desktopImageURL(for: mainScreen),
+              url.isFileURL,
               let image = NSImage(contentsOf: url)
         else { return nil }
 

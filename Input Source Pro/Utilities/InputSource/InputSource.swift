@@ -39,7 +39,7 @@ class InputSource {
             return image.markTemplateIfGrayScaleOrPdf()
         }
 
-        guard let imageURL = self.tisInputSource.iconImageURL else {
+        guard let imageURL = self.tisInputSource.iconImageURL, imageURL.isFileURL else {
             if #available(macOS 11.0, *) {
                 return nil
             } else {
