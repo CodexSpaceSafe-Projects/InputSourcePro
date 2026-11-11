@@ -4,6 +4,15 @@ import XCTest
 @testable import Input_Source_Pro
 
 final class NativeAccessibilityTests: XCTestCase {
+    func testNativeAXErrorsKeepDescriptiveSingleTokenDiagnostics() {
+        XCTAssertEqual(String(describing: AXError.cannotComplete), "AXError.CannotComplete")
+        XCTAssertEqual(String(describing: AXError.apiDisabled), "AXError.APIDisabled")
+        for error: AXError in [.illegalArgument, .invalidUIElement, .attributeUnsupported,
+                               .notificationUnsupported, .noValue] {
+            XCTAssertFalse(String(describing: error).contains(" "))
+        }
+    }
+
     func testUnboxesSystemGeometryValues() throws {
         let point = CGPoint(x: 23, y: -4)
         let size = CGSize(width: 90, height: 31)

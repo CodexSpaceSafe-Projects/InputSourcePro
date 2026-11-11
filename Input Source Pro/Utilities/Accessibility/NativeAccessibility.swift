@@ -131,7 +131,34 @@ enum AXNotification: String {
 
 // Keep the native error code intact so callers can distinguish missing
 // attributes from transient IPC failures when deciding whether to retry.
-extension AXError: Swift.Error {}
+extension AXError: Swift.Error, CustomStringConvertible {
+    /// Diagnostics are logged as space-separated key=value fields. Keep native
+    /// error names descriptive and stable across SDKs rather than relying on
+    /// the imported enum's default `AXError(rawValue: ...)` representation.
+    public var description: String {
+        let name: String
+        switch self {
+        case .success: name = "Success"
+        case .failure: name = "Failure"
+        case .illegalArgument: name = "IllegalArgument"
+        case .invalidUIElement: name = "InvalidUIElement"
+        case .invalidUIElementObserver: name = "InvalidUIElementObserver"
+        case .cannotComplete: name = "CannotComplete"
+        case .attributeUnsupported: name = "AttributeUnsupported"
+        case .actionUnsupported: name = "ActionUnsupported"
+        case .notificationUnsupported: name = "NotificationUnsupported"
+        case .notImplemented: name = "NotImplemented"
+        case .notificationAlreadyRegistered: name = "NotificationAlreadyRegistered"
+        case .notificationNotRegistered: name = "NotificationNotRegistered"
+        case .apiDisabled: name = "APIDisabled"
+        case .noValue: name = "NoValue"
+        case .parameterizedAttributeUnsupported: name = "ParameterizedAttributeUnsupported"
+        case .notEnoughPrecision: name = "NotEnoughPrecision"
+        @unknown default: name = "Code\(rawValue)"
+        }
+        return "AXError.\(name)"
+    }
+}
 
 class UIElement: Hashable {
     let element: AXUIElement

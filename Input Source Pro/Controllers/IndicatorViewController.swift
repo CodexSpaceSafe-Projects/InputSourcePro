@@ -15,7 +15,7 @@ class IndicatorViewController: NSViewController {
     private var caretContentOffset = CGPoint.zero
     private var alwaysOnLeadingConstraint: NSLayoutConstraint?
     private var alwaysOnBottomConstraint: NSLayoutConstraint?
-    let hoverableView = NSViewHoverable(frame: .zero)
+    let hoverableView: NSViewHoverable
 
     private(set) var config: IndicatorViewConfig? = nil {
         didSet {
@@ -45,16 +45,22 @@ class IndicatorViewController: NSViewController {
                 let size = normalView.fittingSize
                 normalView.translatesAutoresizingMaskIntoConstraints = false
                 var constraints = [
-                    normalView.leadingAnchor.constraint(equalTo: view.leadingAnchor),
-                    normalView.bottomAnchor.constraint(equalTo: view.bottomAnchor),
                     normalView.widthAnchor.constraint(equalToConstant: size.width),
                     normalView.heightAnchor.constraint(equalToConstant: size.height),
                 ]
-                if case .preview = layout {
-                    // SwiftUI needs the full content bounds to size and align previews.
+                switch layout {
+                case .floatingWindow:
                     constraints += [
-                        normalView.topAnchor.constraint(equalTo: view.topAnchor),
-                        normalView.trailingAnchor.constraint(equalTo: view.trailingAnchor),
+                        normalView.leadingAnchor.constraint(equalTo: view.leadingAnchor),
+                        normalView.bottomAnchor.constraint(equalTo: view.bottomAnchor),
+                    ]
+                case .preview:
+                    // SwiftUI may offer more space than the indicator needs. Center
+                    // inside that proposal without pinning a fixed-size child to all edges.
+                    (hoverableView as? IndicatorPreviewHostView)?.contentSize = size
+                    constraints += [
+                        normalView.centerXAnchor.constraint(equalTo: view.centerXAnchor),
+                        normalView.centerYAnchor.constraint(equalTo: view.centerYAnchor),
                     ]
                 }
                 NSLayoutConstraint.activate(constraints)
@@ -88,6 +94,12 @@ class IndicatorViewController: NSViewController {
 
     init(layout: Layout = .floatingWindow) {
         self.layout = layout
+        switch layout {
+        case .floatingWindow:
+            hoverableView = NSViewHoverable(frame: .zero)
+        case .preview:
+            hoverableView = IndicatorPreviewHostView(frame: .zero)
+        }
         super.init(nibName: nil, bundle: nil)
     }
 
@@ -172,4 +184,20 @@ class IndicatorViewController: NSViewController {
     override func loadView() {
         view = hoverableView
     }
+}
+
+/// Reports the indicator's natural size to SwiftUI while allowing a flexible
+/// proposal to give the preview more room. The controller centers content in it.
+@MainActor
+private final class IndicatorPreviewHostView: NSViewHoverable {
+    var contentSize = NSSize.zero {
+        didSet {
+            guard contentSize != oldValue else { return }
+            invalidateIntrinsicContentSize()
+            needsLayout = true
+        }
+    }
+
+    override var intrinsicContentSize: NSSize { contentSize }
+    override var fittingSize: NSSize { contentSize }
 }
