@@ -7,7 +7,7 @@ extension Publisher {
     }
 
     func ignoreFailure() -> AnyPublisher<Output, Never> {
-        catch { _ in Empty<Output, Never>() }.eraseToAnyPublisher()
+        self.catch { _ in Empty<Output, Never>() }.eraseToAnyPublisher()
     }
 
     /// Switching to the new publisher cancels the previous publisher immediately.
