@@ -9,7 +9,7 @@ pinned official checkout/artifact actions and GitHub's API.
 
 Every branch push, pull request, and manual workflow run builds and runs the
 macOS test target, then creates a universal (`arm64` and `x86_64`) Release app.
-The `Build and release` workflow uses the GitHub-hosted `macos-15` image and its
+The `Build and release` workflow uses the GitHub-hosted `macos-15-intel` image and its
 installed Xcode 26.3. Build ZIPs, SHA-256 checksums, and build metadata are retained
 as the `Input-Source-Pro-macOS-universal` Actions artifact. Failed test runs also
 retain their `.xcresult` bundle when available.
