@@ -262,7 +262,7 @@ enum KeyboardShortcuts {
             refreshTitle()
         }
 
-        required init?(coder: NSCoder) { nil }
+        required init?(coder: NSCoder) { return nil }
 
         deinit {
             if let monitor { NSEvent.removeMonitor(monitor) }
