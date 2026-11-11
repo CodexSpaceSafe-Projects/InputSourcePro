@@ -20,7 +20,8 @@ Open `Input Source Pro.xcodeproj` in Xcode 26 or later, or run:
 ```sh
 xcodebuild -project 'Input Source Pro.xcodeproj' -scheme 'Input Source Pro' \
   -configuration Debug -destination 'platform=macOS' \
-  -derivedDataPath /tmp/inputsourcepro-derived CODE_SIGNING_ALLOWED=NO test
+  -derivedDataPath /tmp/inputsourcepro-derived \
+  CODE_SIGN_IDENTITY=- CODE_SIGN_STYLE=Manual DEVELOPMENT_TEAM= test
 ```
 
 No SwiftPM packages or third-party binaries need to be fetched. The app supports

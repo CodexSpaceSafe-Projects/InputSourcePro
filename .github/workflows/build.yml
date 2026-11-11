@@ -60,7 +60,7 @@ jobs:
       - name: Verify universal app architecture
         run: >-
           python3 scripts/ci_xcodebuild.py --log "$RUNNER_TEMP/isp-architectures.log" --
-          lipo -verify_arch arm64 x86_64 'dist/Input Source Pro.app/Contents/MacOS/Input Source Pro'
+          lipo 'dist/Input Source Pro.app/Contents/MacOS/Input Source Pro' -verify_arch arm64 x86_64
       - name: Check preview layout
         run: >-
           python3 scripts/ci_xcodebuild.py --log "$RUNNER_TEMP/isp-preview.log" --
