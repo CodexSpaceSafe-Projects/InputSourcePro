@@ -50,8 +50,10 @@ final class CaretChannel {
         let auditToken: Data
 
         static func executableURL(pid: pid_t) -> URL? {
-            var path = [CChar](repeating: 0, count: Int(PROC_PIDPATHINFO_MAXSIZE))
-            guard proc_pidpath(pid, &path, UInt32(PROC_PIDPATHINFO_MAXSIZE)) > 0 else { return nil }
+            // libproc defines PROC_PIDPATHINFO_MAXSIZE as 4 * MAXPATHLEN, but Swift cannot import that macro.
+            let capacity = 4 * Int(MAXPATHLEN)
+            var path = [CChar](repeating: 0, count: capacity)
+            guard proc_pidpath(pid, &path, UInt32(capacity)) > 0 else { return nil }
             return URL(fileURLWithPath: String(cString: path)).resolvingSymlinksInPath()
         }
 
