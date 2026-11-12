@@ -1,5 +1,4 @@
 import XCTest
-import Security
 import Darwin
 @testable import Input_Source_Pro
 
@@ -52,16 +51,8 @@ final class CaretChannelTests: XCTestCase {
         XCTAssertTrue(CaretPalette.TextFocus(role: .textField, subrole: nil).permitsCaret)
     }
 
-    private func ownRequirement() throws -> String {
-        var code: SecCode?
-        XCTAssertEqual(SecCodeCopySelf([], &code), errSecSuccess)
-        var staticCode: SecStaticCode?
-        XCTAssertEqual(SecCodeCopyStaticCode(try XCTUnwrap(code), [], &staticCode), errSecSuccess)
-        var requirement: SecRequirement?
-        XCTAssertEqual(SecCodeCopyDesignatedRequirement(try XCTUnwrap(staticCode), [], &requirement), errSecSuccess)
-        var text: CFString?
-        XCTAssertEqual(SecRequirementCopyString(try XCTUnwrap(requirement), [], &text), errSecSuccess)
-        return try XCTUnwrap(text) as String
+    private func ownExecutableURL() throws -> URL {
+        try CaretChannel.ProcessIdentity.current().executable
     }
 
     private func socketURL() throws -> URL {
@@ -74,16 +65,16 @@ final class CaretChannelTests: XCTestCase {
 
     func testAuthenticatedPeersExchangeMessagesAndDisconnect() async throws {
         let url = try socketURL()
-        let requirement = try ownRequirement()
+        let executable = try ownExecutableURL()
         let received = expectation(description: "private activity received")
         let disconnected = expectation(description: "helper stops when owner disconnects")
         let ready = expectation(description: "authenticated helper acknowledges connection")
-        let app = try CaretChannel(role: .application, socketURL: url, requirement: requirement,
+        let app = try CaretChannel(role: .application, socketURL: url, peerExecutableURL: executable,
                                    onMessage: { message in
             XCTAssertEqual(message, .ready)
             ready.fulfill()
         }, onConnectionChange: { _ in })
-        let helper = try CaretChannel(role: .helper, socketURL: url, requirement: requirement,
+        let helper = try CaretChannel(role: .helper, socketURL: url, peerExecutableURL: executable,
                                      onMessage: { [activity] message in
             XCTAssertEqual(message, .activity(activity))
             received.fulfill()
@@ -103,14 +94,13 @@ final class CaretChannelTests: XCTestCase {
 
     func testUntrustedClientCannotReceivePrivateActivity() async throws {
         let url = try socketURL()
-        let own = try ownRequirement()
         let rejected = expectation(description: "untrusted client never accepted")
         rejected.isInverted = true
         let app = try CaretChannel(role: .application, socketURL: url,
-                                  requirement: "identifier \"example.not-this-process\"",
+                                  peerExecutableURL: URL(fileURLWithPath: "/not-the-installed-helper/CaretControl"),
                                   onMessage: { _ in rejected.fulfill() },
                                   onConnectionChange: { if $0 { rejected.fulfill() } })
-        let helper = try CaretChannel(role: .helper, socketURL: url, requirement: own,
+        let helper = try CaretChannel(role: .helper, socketURL: url,
                                      onMessage: { _ in rejected.fulfill() }, onConnectionChange: { _ in })
         defer { helper.stop(); app.stop() }
         try app.start()
@@ -119,14 +109,54 @@ final class CaretChannelTests: XCTestCase {
         await fulfillment(of: [rejected], timeout: 1.5)
     }
 
+    func testPeerAuthenticationDoesNotRequireASharedSigningIdentity() async throws {
+        let url = try socketURL()
+        let connected = expectation(description: "separate native process connects")
+        let received = expectation(description: "separate native process receives activity")
+        let output = Pipe()
+        var decoder = CaretChannel.Decoder()
+        let message = CaretMessage.activity(activity)
+        output.fileHandleForReading.readabilityHandler = { file in
+            let bytes = file.availableData
+            guard !bytes.isEmpty else { return }
+            do {
+                for decoded in try decoder.append(bytes) {
+                    XCTAssertEqual(decoded, message)
+                    received.fulfill()
+                }
+            } catch { XCTFail("Invalid frame: \(error)") }
+        }
+        // macOS supplies nc with a different signing identity and no app/helper bundle identifier.
+        let executable = URL(fileURLWithPath: "/usr/bin/nc")
+        let app = try CaretChannel(role: .application, socketURL: url, peerExecutableURL: executable,
+                                   onMessage: { _ in }, onConnectionChange: { isConnected in
+            if isConnected { connected.fulfill() }
+        })
+        let client = Process()
+        client.executableURL = executable
+        client.arguments = ["-U", url.path]
+        client.standardInput = Pipe()
+        client.standardOutput = output
+        defer {
+            output.fileHandleForReading.readabilityHandler = nil
+            if client.isRunning { client.terminate() }
+            app.stop()
+        }
+        try app.start()
+        try client.run()
+        await fulfillment(of: [connected], timeout: 5)
+        app.send(message)
+        await fulfillment(of: [received], timeout: 5)
+    }
+
     func testHelperRejectsAnImpersonatedApp() async throws {
         let url = try socketURL()
         let rejected = expectation(description: "fake application never accepted")
         rejected.isInverted = true
-        let app = try CaretChannel(role: .application, socketURL: url, requirement: try ownRequirement(),
+        let app = try CaretChannel(role: .application, socketURL: url, peerExecutableURL: try ownExecutableURL(),
                                   onMessage: { _ in rejected.fulfill() }, onConnectionChange: { _ in })
         let helper = try CaretChannel(role: .helper, socketURL: url,
-                                     requirement: "identifier \"example.not-this-process\"",
+                                     peerExecutableURL: URL(fileURLWithPath: "/not-the-listening-app/Input Source Pro"),
                                      onMessage: { _ in rejected.fulfill() },
                                      onConnectionChange: { if $0 { rejected.fulfill() } })
         defer { helper.stop(); app.stop() }
@@ -141,8 +171,11 @@ final class CaretChannelTests: XCTestCase {
         let second = try CaretChannel(role: .application, socketURL: url, onMessage: { _ in }, onConnectionChange: { _ in })
         defer { first.stop(); second.stop() }
         try first.start()
+        let owner = try Data(contentsOf: url.appendingPathExtension("owner"))
         XCTAssertThrowsError(try second.start())
+        second.stop()
         XCTAssertTrue(FileManager.default.fileExists(atPath: url.path))
+        XCTAssertEqual(try Data(contentsOf: url.appendingPathExtension("owner")), owner)
     }
 
     func testSocketDirectorySymlinkIsRejected() throws {
@@ -154,22 +187,104 @@ final class CaretChannelTests: XCTestCase {
         XCTAssertThrowsError(try app.start())
     }
 
-    func testCopiedBundleIdentifiersWithoutOurSignatureAreRejected() throws {
-        let executable = try socketURL().deletingLastPathComponent().appendingPathComponent("impostor")
-        try FileManager.default.copyItem(at: URL(fileURLWithPath: "/usr/bin/true"), to: executable)
-        for (identifier, role) in [("com.runjuu.Input-Source-Pro", CaretChannel.Role.helper),
-                                   ("com.runjuu.Input-Source-Pro.inputmethod.PaletteControl", .application)] {
-            let sign = Process()
-            sign.executableURL = URL(fileURLWithPath: "/usr/bin/codesign")
-            sign.arguments = ["--force", "--sign", "-", "--identifier", identifier, executable.path]
-            try sign.run()
-            sign.waitUntilExit()
-            XCTAssertEqual(sign.terminationStatus, 0)
-            var code: SecStaticCode?
-            XCTAssertEqual(SecStaticCodeCreateWithPath(executable as CFURL, [], &code), errSecSuccess)
-            var requirement: SecRequirement?
-            XCTAssertEqual(SecRequirementCreateWithString(role.peerRequirement as CFString, [], &requirement), errSecSuccess)
-            XCTAssertNotEqual(SecStaticCodeCheckValidity(try XCTUnwrap(code), [], try XCTUnwrap(requirement)), errSecSuccess)
+    func testDefaultChannelRejectsAnExecutableOutsideTheInstalledHelper() async throws {
+        let url = try socketURL()
+        let rejected = expectation(description: "only the installed helper may connect")
+        rejected.isInverted = true
+        let app = try CaretChannel(role: .application, socketURL: url, onMessage: { _ in rejected.fulfill() },
+                                   onConnectionChange: { if $0 { rejected.fulfill() } })
+        let helper = try CaretChannel(role: .helper, socketURL: url,
+                                     onMessage: { _ in rejected.fulfill() }, onConnectionChange: { _ in })
+        defer { helper.stop(); app.stop() }
+        try app.start()
+        try helper.start()
+        await fulfillment(of: [rejected], timeout: 1.5)
+    }
+
+    private func assertOwnerRejected(change: (URL) throws -> Void) async throws {
+        let url = try socketURL()
+        let rejected = expectation(description: "helper rejects invalid listener identity")
+        rejected.isInverted = true
+        let app = try CaretChannel(role: .application, socketURL: url, peerExecutableURL: try ownExecutableURL(),
+                                   onMessage: { _ in }, onConnectionChange: { _ in })
+        let helper = try CaretChannel(role: .helper, socketURL: url,
+                                     onMessage: { _ in rejected.fulfill() },
+                                     onConnectionChange: { if $0 { rejected.fulfill() } })
+        defer { helper.stop(); app.stop() }
+        try app.start()
+        try change(url.appendingPathExtension("owner"))
+        try helper.start()
+        await fulfillment(of: [rejected], timeout: 1.5)
+    }
+
+    func testHelperRejectsAReusedPIDWithADifferentAuditToken() async throws {
+        try await assertOwnerRejected { url in
+            let own = try CaretChannel.ProcessIdentity.current()
+            let stale = CaretChannel.ProcessIdentity(pid: own.pid, executable: own.executable,
+                                                     auditToken: Data(repeating: 0, count: own.auditToken.count))
+            try JSONEncoder().encode(stale).write(to: url)
         }
+    }
+
+    func testHelperRejectsAMismatchedOwnerExecutable() async throws {
+        try await assertOwnerRejected { url in
+            let own = try CaretChannel.ProcessIdentity.current()
+            let fake = CaretChannel.ProcessIdentity(pid: own.pid, executable: URL(fileURLWithPath: "/impostor"),
+                                                    auditToken: own.auditToken)
+            try JSONEncoder().encode(fake).write(to: url)
+        }
+    }
+
+    func testHelperRejectsAMismatchedOwnerPID() async throws {
+        try await assertOwnerRejected { url in
+            let own = try CaretChannel.ProcessIdentity.current()
+            let fake = CaretChannel.ProcessIdentity(pid: own.pid + 1, executable: own.executable,
+                                                    auditToken: own.auditToken)
+            try JSONEncoder().encode(fake).write(to: url)
+        }
+    }
+
+    func testHelperRejectsAMissingOrMalformedOwnerRecord() async throws {
+        try await assertOwnerRejected { try FileManager.default.removeItem(at: $0) }
+        try await assertOwnerRejected { try Data("invalid".utf8).write(to: $0) }
+        try await assertOwnerRejected { try Data(repeating: 0, count: 4097).write(to: $0) }
+    }
+
+    func testHelperRejectsAPublicOwnerRecordOrDirectory() async throws {
+        try await assertOwnerRejected { url in
+            try FileManager.default.setAttributes([.posixPermissions: 0o644], ofItemAtPath: url.path)
+        }
+        try await assertOwnerRejected { url in
+            try FileManager.default.setAttributes([.posixPermissions: 0o755],
+                                                 ofItemAtPath: url.deletingLastPathComponent().path)
+        }
+    }
+
+    func testHelperRejectsAnOwnerRecordSymlink() async throws {
+        try await assertOwnerRejected { url in
+            let target = url.appendingPathExtension("copy")
+            try FileManager.default.moveItem(at: url, to: target)
+            try FileManager.default.createSymbolicLink(at: url, withDestinationURL: target)
+        }
+    }
+
+    func testHelperRejectsAnOwnerRecordHardLink() async throws {
+        try await assertOwnerRejected { url in
+            try FileManager.default.linkItem(at: url, to: url.appendingPathExtension("copy"))
+        }
+    }
+
+    func testStoppingTheOwnerRemovesItsPrivateSessionRecord() throws {
+        let url = try socketURL()
+        let app = try CaretChannel(role: .application, socketURL: url, onMessage: { _ in }, onConnectionChange: { _ in })
+        try app.start()
+        let owner = url.appendingPathExtension("owner")
+        let identity = try JSONDecoder().decode(CaretChannel.ProcessIdentity.self, from: Data(contentsOf: owner))
+        XCTAssertEqual(identity, try CaretChannel.ProcessIdentity.current())
+        let permissions = try FileManager.default.attributesOfItem(atPath: owner.path)[.posixPermissions] as? NSNumber
+        XCTAssertEqual(permissions?.intValue, 0o600)
+        app.stop()
+        XCTAssertFalse(FileManager.default.fileExists(atPath: owner.path))
+        XCTAssertFalse(FileManager.default.fileExists(atPath: url.path))
     }
 }

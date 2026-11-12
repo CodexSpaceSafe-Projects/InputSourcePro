@@ -67,11 +67,12 @@ registration works on supported macOS versions when the app is installed in its
 normal location; macOS 12 does not provide the native ServiceManagement API used
 by this fork, so its login-item control is unavailable there.
 
-The optional input-method cursor helper requires a trusted team signing identity
-for its authenticated connection. Ad-hoc releases intentionally leave that
-optional helper unavailable; the app reports the limitation, and standard
-Accessibility-based cursor placement remains available. This avoids weakening
-local IPC authentication for unsigned builds.
+The optional input-method cursor helper supports ad-hoc releases. Its native
+local connection checks the current user, kernel process identity, executable
+path, and a private listener session record; it does not require an Apple
+certificate chain or matching Team ID. The helper's installed executable and
+session files belong to the current user's trust boundary. Enhanced Mode,
+Accessibility permission, and macOS input-method consent are still required.
 
 ## Local validation
 

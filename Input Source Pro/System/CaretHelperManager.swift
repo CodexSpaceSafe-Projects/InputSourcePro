@@ -45,8 +45,7 @@ final class CaretHelperManager: ObservableObject {
     private let stopTracking: @MainActor () -> Void
 
     var isBusy: Bool { operation != nil }
-    var supportsAuthenticatedHelper: Bool { command != nil || CaretChannel.signingTeamIdentifier != nil }
-    var canActivate: Bool { enhancedMode && accessibilityAllowed && supportsAuthenticatedHelper }
+    var canActivate: Bool { enhancedMode && accessibilityAllowed }
 
     init(command: (([String]) async throws -> String)? = nil,
          helperURL: URL? = nil, installedURL: URL? = nil,

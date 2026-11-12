@@ -14,7 +14,7 @@ setup_binaries=()
 for architecture in ${ARCHS:-$(uname -m)}; do
     target="$architecture-apple-macosx${MACOSX_DEPLOYMENT_TARGET:-12.0}"
     common=(-module-cache-path "$work_dir/ModuleCache" -swift-version 5 -target "$target" -O)
-    xcrun swiftc "${common[@]}" "$source_dir/main.swift" "$source_dir/CaretChannel.swift" "$source_dir/CaretPollingSchedule.swift" "$source_dir/CaretGeometryFilter.swift" -o "$work_dir/CaretControl-$architecture" -framework Cocoa -framework Carbon -framework InputMethodKit -framework Security
+    xcrun swiftc "${common[@]}" "$source_dir/main.swift" "$source_dir/CaretChannel.swift" "$source_dir/CaretPollingSchedule.swift" "$source_dir/CaretGeometryFilter.swift" -o "$work_dir/CaretControl-$architecture" -framework Cocoa -framework Carbon -framework InputMethodKit
     xcrun swiftc "${common[@]}" "$source_dir/Setup.swift" "$source_dir/CaretHelperFiles.swift" "$source_dir/CaretInputSource.swift" -o "$work_dir/setup-$architecture" -framework Cocoa -framework Carbon
     helper_binaries+=("$work_dir/CaretControl-$architecture")
     setup_binaries+=("$work_dir/setup-$architecture")

@@ -157,6 +157,14 @@ final class CaretHelperSetupTests: XCTestCase {
     }
 
     @MainActor
+    func testHelperAvailabilityDependsOnPermissionsWithoutASigningTeamGate() {
+        let manager = CaretHelperManager(stopTracking: {})
+        XCTAssertFalse(manager.canActivate)
+        manager.updateAvailability(enhanced: true, allowed: true)
+        XCTAssertTrue(manager.canActivate)
+    }
+
+    @MainActor
     func testRevokedPermissionAndMissingRegistrationAreNotReady() {
         XCTAssertFalse(CaretHelperManager.Status(installed: true, registered: true, enabled: false, selected: false).isReady)
         XCTAssertFalse(CaretHelperManager.Status(installed: true, registered: false, enabled: true, selected: true).isReady)

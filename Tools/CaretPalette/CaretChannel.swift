@@ -1,5 +1,4 @@
 import Foundation
-import Security
 import Darwin
 
 struct CaretActivity: Codable, Equatable {
@@ -30,34 +29,10 @@ enum CaretMessage: Codable, Equatable {
     case position(CaretPosition)
 }
 
-/// A same-user socket with mutually authenticated code identities. No discovery or data broadcasts.
+/// A private same-user socket bound to the installed helper and the listening app's process.
 final class CaretChannel {
-    /// An ad-hoc signature has no publisher identity. Never weaken the helper's
-    /// authentication to a forgeable bundle identifier for an unsigned build.
-    static let signingTeamIdentifier: String? = {
-        var code: SecCode?
-        var staticCode: SecStaticCode?
-        var information: CFDictionary?
-        guard SecCodeCopySelf([], &code) == errSecSuccess, let code,
-              SecCodeCopyStaticCode(code, [], &staticCode) == errSecSuccess, let staticCode,
-              SecCodeCopySigningInformation(staticCode, SecCSFlags(rawValue: kSecCSSigningInformation), &information) == errSecSuccess,
-              let values = information as? [String: Any],
-              let team = values[kSecCodeInfoTeamIdentifier as String] as? String,
-              team.count == 10, team.allSatisfy({ $0.isASCII && ($0.isLetter || $0.isNumber) })
-        else { return nil }
-        return team
-    }()
-
     enum Role {
         case application, helper
-
-        var peerRequirement: String {
-            let identifier = self == .application
-                ? "com.runjuu.Input-Source-Pro.inputmethod.PaletteControl"
-                : "com.runjuu.Input-Source-Pro"
-            let team = CaretChannel.signingTeamIdentifier ?? "0000000000"
-            return "anchor apple generic and identifier \"\(identifier)\" and certificate leaf[subject.OU] = \"\(team)\""
-        }
 
         func accepts(_ message: CaretMessage) -> Bool {
             switch (self, message) {
@@ -67,7 +42,34 @@ final class CaretChannel {
         }
     }
 
-    enum Failure: Error { case invalidRequirement, invalidDirectory, alreadyRunning, socket(Int32), invalidFrame }
+    enum Failure: Error { case invalidIdentity, invalidDirectory, alreadyRunning, socket(Int32), invalidFrame }
+
+    struct ProcessIdentity: Codable, Equatable {
+        let pid: pid_t
+        let executable: URL
+        let auditToken: Data
+
+        static func executableURL(pid: pid_t) -> URL? {
+            var path = [CChar](repeating: 0, count: Int(PROC_PIDPATHINFO_MAXSIZE))
+            guard proc_pidpath(pid, &path, UInt32(PROC_PIDPATHINFO_MAXSIZE)) > 0 else { return nil }
+            return URL(fileURLWithPath: String(cString: path)).resolvingSymlinksInPath()
+        }
+
+        static func current() throws -> ProcessIdentity {
+            var token = audit_token_t()
+            let capacity = MemoryLayout<audit_token_t>.size / MemoryLayout<integer_t>.size
+            var count = mach_msg_type_number_t(capacity)
+            let result = withUnsafeMutablePointer(to: &token) {
+                $0.withMemoryRebound(to: integer_t.self, capacity: capacity) {
+                    task_info(mach_task_self_, task_flavor_t(TASK_AUDIT_TOKEN), $0, &count)
+                }
+            }
+            guard result == KERN_SUCCESS, count == mach_msg_type_number_t(capacity),
+                  let executable = executableURL(pid: getpid()) else { throw Failure.invalidIdentity }
+            return ProcessIdentity(pid: getpid(), executable: executable,
+                                   auditToken: withUnsafeBytes(of: &token) { Data($0) })
+        }
+    }
 
     struct Decoder {
         static let maximumSize = 4096
@@ -101,7 +103,9 @@ final class CaretChannel {
 
     private let role: Role
     private let socketURL: URL
-    private let requirement: SecRequirement
+    private let identity: ProcessIdentity
+    private let peerExecutableURL: URL?
+    private var ownerURL: URL { socketURL.appendingPathExtension("owner") }
     private let onMessage: (CaretMessage) -> Void
     private let onConnectionChange: (Bool) -> Void
     private let queue = DispatchQueue(label: "com.runjuu.Input-Source-Pro.caret-channel")
@@ -116,16 +120,16 @@ final class CaretChannel {
     private var outgoing = Data()
     private var running = false
 
-    init(role: Role, socketURL: URL = CaretChannel.socketURL, requirement: String? = nil,
+    init(role: Role, socketURL: URL = CaretChannel.socketURL, peerExecutableURL: URL? = nil,
          onMessage: @escaping (CaretMessage) -> Void, onConnectionChange: @escaping (Bool) -> Void) throws {
         self.role = role
         self.socketURL = socketURL
+        self.identity = try ProcessIdentity.current()
+        self.peerExecutableURL = (peerExecutableURL ?? (role == .application
+            ? FileManager.default.homeDirectoryForCurrentUser.appendingPathComponent(
+                "Library/Input Methods/Cursor Helper.app/Contents/MacOS/CaretControl") : nil))?.resolvingSymlinksInPath()
         self.onMessage = onMessage
         self.onConnectionChange = onConnectionChange
-        var parsed: SecRequirement?
-        guard SecRequirementCreateWithString((requirement ?? role.peerRequirement) as CFString, [], &parsed) == errSecSuccess,
-              let parsed = parsed else { throw Failure.invalidRequirement }
-        self.requirement = parsed
         queue.setSpecific(key: queueKey, value: true)
     }
 
@@ -163,6 +167,7 @@ final class CaretChannel {
         listener = nil
         if lockFD >= 0 {
             unlink(socketURL.path)
+            unlink(ownerURL.path)
             close(lockFD)
             lockFD = -1
         }
@@ -182,20 +187,61 @@ final class CaretChannel {
         }
     }
 
-    static func authenticate(_ socket: Int32, requirement: SecRequirement) -> Bool {
+    private static func peerIdentity(_ socket: Int32) -> ProcessIdentity? {
         var uid: uid_t = 0
         var gid: gid_t = 0
-        guard getpeereid(socket, &uid, &gid) == 0, uid == geteuid() else { return false }
+        guard getpeereid(socket, &uid, &gid) == 0, uid == geteuid() else { return nil }
+        var pid: pid_t = 0
+        var pidSize = socklen_t(MemoryLayout.size(ofValue: pid))
+        guard getsockopt(socket, SOL_LOCAL, LOCAL_PEERPID, &pid, &pidSize) == 0,
+              pidSize == MemoryLayout.size(ofValue: pid), pid > 0 else { return nil }
         var token = audit_token_t()
         var size = socklen_t(MemoryLayout.size(ofValue: token))
         guard getsockopt(socket, SOL_LOCAL, LOCAL_PEERTOKEN, &token, &size) == 0,
-              size == MemoryLayout.size(ofValue: token) else { return false }
-        let audit = withUnsafeBytes(of: &token) { Data($0) }
-        var code: SecCode?
-        // The kernel's audit token binds verification to this peer, avoiding PID reuse races.
-        guard SecCodeCopyGuestWithAttributes(nil, [kSecGuestAttributeAudit: audit] as CFDictionary, [], &code) == errSecSuccess,
-              let code = code else { return false }
-        return SecCodeCheckValidity(code, SecCSFlags(rawValue: kSecCSStrictValidate), requirement) == errSecSuccess
+              size == MemoryLayout.size(ofValue: token),
+              let executable = ProcessIdentity.executableURL(pid: pid) else { return nil }
+        return ProcessIdentity(pid: pid, executable: executable,
+                               auditToken: withUnsafeBytes(of: &token) { Data($0) })
+    }
+
+    private func validateDirectory() throws {
+        var info = stat()
+        guard lstat(socketURL.deletingLastPathComponent().path, &info) == 0,
+              info.st_uid == geteuid(), info.st_mode & S_IFMT == S_IFDIR,
+              info.st_mode & 0o777 == 0o700 else { throw Failure.invalidDirectory }
+    }
+
+    private func writeOwner() throws {
+        unlink(ownerURL.path)
+        let fd = open(ownerURL.path, O_CREAT | O_EXCL | O_WRONLY | O_NOFOLLOW | O_CLOEXEC, 0o600)
+        guard fd >= 0 else { throw Failure.socket(errno) }
+        let file = FileHandle(fileDescriptor: fd, closeOnDealloc: true)
+        defer { try? file.close() }
+        try file.write(contentsOf: JSONEncoder().encode(identity))
+    }
+
+    private func readOwner() throws -> ProcessIdentity {
+        try validateDirectory()
+        let fd = open(ownerURL.path, O_RDONLY | O_NOFOLLOW | O_CLOEXEC | O_NONBLOCK)
+        guard fd >= 0 else { throw Failure.invalidIdentity }
+        let file = FileHandle(fileDescriptor: fd, closeOnDealloc: true)
+        defer { try? file.close() }
+        var info = stat()
+        guard fstat(fd, &info) == 0, info.st_uid == geteuid(),
+              info.st_mode & S_IFMT == S_IFREG, info.st_mode & 0o777 == 0o600,
+              info.st_nlink == 1, info.st_size > 0, info.st_size <= 4096,
+              let data = try file.read(upToCount: 4097), data.count <= 4096 else { throw Failure.invalidIdentity }
+        return try JSONDecoder().decode(ProcessIdentity.self, from: data)
+    }
+
+    private func authenticate(_ socket: Int32) -> Bool {
+        guard let peer = Self.peerIdentity(socket) else { return false }
+        if let expected = peerExecutableURL, peer.executable != expected { return false }
+        if role == .helper {
+            // Bind this connection to the listener's exact process incarnation, not a claimed PID or bundle ID.
+            guard let owner = try? readOwner(), owner == peer else { return false }
+        }
+        return true
     }
 
     private func makeSocket() throws -> Int32 {
@@ -228,14 +274,17 @@ final class CaretChannel {
     private func listen() throws {
         let directory = socketURL.deletingLastPathComponent().path
         if mkdir(directory, 0o700) != 0 && errno != EEXIST { throw Failure.socket(errno) }
-        var info = stat()
-        guard lstat(directory, &info) == 0, info.st_uid == geteuid(),
-              info.st_mode & S_IFMT == S_IFDIR, info.st_mode & 0o777 == 0o700 else { throw Failure.invalidDirectory }
+        try validateDirectory()
         let fd = open(directory + "/lock", O_CREAT | O_RDWR | O_NOFOLLOW | O_CLOEXEC, 0o600)
         guard fd >= 0 else { throw Failure.socket(errno) }
+        var info = stat()
+        guard fstat(fd, &info) == 0, info.st_uid == geteuid(),
+              info.st_mode & S_IFMT == S_IFREG, info.st_mode & 0o777 == 0o600,
+              info.st_nlink == 1 else { close(fd); throw Failure.invalidDirectory }
         guard flock(fd, LOCK_EX | LOCK_NB) == 0 else { close(fd); throw Failure.alreadyRunning }
         lockFD = fd
         do {
+            try writeOwner()
             let socket = try makeSocket()
             do {
                 unlink(socketURL.path)
@@ -250,6 +299,7 @@ final class CaretChannel {
             source.resume()
         } catch {
             unlink(socketURL.path)
+            unlink(ownerURL.path)
             close(lockFD)
             lockFD = -1
             throw error
@@ -278,7 +328,7 @@ final class CaretChannel {
 
     private func attach(_ fd: Int32) {
         var enabled: Int32 = 1
-        guard Self.authenticate(fd, requirement: requirement),
+        guard authenticate(fd),
               fcntl(fd, F_SETFD, FD_CLOEXEC) == 0,
               fcntl(fd, F_SETFL, O_NONBLOCK) == 0,
               setsockopt(fd, SOL_SOCKET, SO_NOSIGPIPE, &enabled, socklen_t(MemoryLayout.size(ofValue: enabled))) == 0 else {

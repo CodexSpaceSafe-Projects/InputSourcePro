@@ -7,12 +7,6 @@ struct AdditionalCursorSupportView: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
-            if !helper.supportsAuthenticatedHelper {
-                Text("Additional cursor support requires the app and helper to be signed by the same Apple developer. Ad-hoc builds retain standard cursor tracking.")
-                    .font(.callout)
-                    .foregroundColor(.secondary)
-                    .fixedSize(horizontal: false, vertical: true)
-            }
             HStack(alignment: .center, spacing: 12) {
                 VStack(alignment: .leading, spacing: 4) {
                     Text("Additional cursor support")
