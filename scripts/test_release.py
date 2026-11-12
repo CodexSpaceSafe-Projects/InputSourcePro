@@ -28,6 +28,7 @@ class ReleaseTests(unittest.TestCase):
         self.git('commit', '-qm', 'initial')
         self.git('update-ref', 'refs/remotes/origin/main', 'HEAD')
         self.variables = patch.dict(os.environ, GITHUB_REF='refs/heads/main',
+                                    GITHUB_EVENT_NAME='workflow_dispatch',
                                     GITHUB_SHA=self.git('rev-parse', 'HEAD'),
                                     GITHUB_REPOSITORY='example/offline-app',
                                     GITHUB_OUTPUT=str(Path('output').resolve()))
@@ -36,6 +37,15 @@ class ReleaseTests(unittest.TestCase):
 
     def git(self, *args):
         return subprocess.check_output(['git', *args], text=True, stderr=subprocess.DEVNULL).strip()
+
+    def github(self, *responses):
+        original = release.run
+        values = iter(responses)
+
+        def respond(*args):
+            return json.dumps(next(values)) if args[0] == 'gh' else original(*args)
+
+        return patch.object(release, 'run', side_effect=respond)
 
     def tagged(self, tag='v2.14.0'):
         self.git('tag', tag)
@@ -84,6 +94,43 @@ class ReleaseTests(unittest.TestCase):
             self.assertEqual(metadata['version'], '2.14.0')
             self.assertEqual(metadata['tag'], tag)
 
+    def test_main_push_automatically_releases_a_new_version(self):
+        self.git('tag', '2.12.0')
+        with patch.dict(os.environ, GITHUB_EVENT_NAME='push'):
+            metadata = release.prepare()
+        self.assertTrue(metadata['publish'])
+        self.assertEqual(metadata['tag'], '2.13.0')
+        self.assertEqual(metadata['version'], '2.13.0')
+        self.assertFalse(Path('dist/notes.md').exists(), 'Missing notes must not block publication')
+
+    def test_first_main_version_can_release_without_existing_tags(self):
+        with patch.dict(os.environ, GITHUB_EVENT_NAME='push'):
+            self.assertTrue(release.prepare()['publish'])
+
+    def test_existing_equivalent_or_newer_tags_prevent_main_republication(self):
+        for tag in ['2.13.0', 'v2.13.0', '2.14.0']:
+            with self.subTest(tag=tag):
+                self.git('tag', tag)
+                with patch.dict(os.environ, GITHUB_EVENT_NAME='push'):
+                    metadata = release.prepare()
+                self.assertFalse(metadata['publish'])
+                self.assertEqual(metadata['tag'], '')
+                self.git('tag', '-d', tag)
+
+    def test_feature_pushes_and_pull_requests_cannot_release(self):
+        for event, ref in [('push', 'refs/heads/feature'), ('pull_request', 'refs/heads/main'),
+                           ('pull_request', 'refs/pull/1/merge'), ('workflow_dispatch', 'refs/heads/main')]:
+            with self.subTest(event=event, ref=ref), patch.dict(os.environ, GITHUB_EVENT_NAME=event, GITHUB_REF=ref):
+                self.assertFalse(release.prepare()['publish'])
+
+    def test_project_version_must_be_numeric_and_consistent(self):
+        for project in ['MARKETING_VERSION = v2.13.0;', 'MARKETING_VERSION = 2.13;',
+                        'MARKETING_VERSION = 2.13.0;\nMARKETING_VERSION = 2.14.0;', '']:
+            with self.subTest(project=project):
+                Path('Input Source Pro.xcodeproj/project.pbxproj').write_text(project)
+                with self.assertRaisesRegex(ValueError, 'MARKETING_VERSION'):
+                    release.prepare()
+
     def test_invalid_tag_is_rejected(self):
         with patch.dict(os.environ, GITHUB_REF='refs/tags/v2.14.0-beta'):
             with self.assertRaisesRegex(ValueError, 'Release tags'):
@@ -117,16 +164,47 @@ class ReleaseTests(unittest.TestCase):
     def test_tag_uses_only_committed_notes_without_rendering(self):
         path = Path('docs/release-notes/2.14.0.md')
         path.parent.mkdir(parents=True)
-        path.write_text('Approved release notes\n')
+        path.write_text('Committed release notes\n')
         self.git('add', str(path))
-        self.git('commit', '-qm', 'approved notes')
+        self.git('commit', '-qm', 'release notes')
         self.git('update-ref', 'refs/remotes/origin/main', 'HEAD')
         with patch.dict(os.environ, GITHUB_SHA=self.git('rev-parse', 'HEAD')):
             self.git('tag', 'v2.14.0')
             path.write_text('Uncommitted changes')
             with patch.dict(os.environ, GITHUB_REF='refs/tags/v2.14.0'):
                 release.prepare()
-        self.assertEqual(Path('dist/notes.md').read_text(), 'Approved release notes\n')
+        self.assertEqual(Path('dist/notes.md').read_text(), 'Committed release notes\n')
+
+    def test_restoring_notes_preserves_release_decision_after_tag_creation(self):
+        path = Path('docs/release-notes/2.13.0.md')
+        path.parent.mkdir(parents=True)
+        path.write_text('New version\n')
+        self.git('add', str(path))
+        self.git('commit', '-qm', 'notes')
+        self.git('update-ref', 'refs/remotes/origin/main', 'HEAD')
+        with patch.dict(os.environ, GITHUB_SHA=self.git('rev-parse', 'HEAD'), GITHUB_EVENT_NAME='push'):
+            metadata = self.packaged()
+            self.git('tag', metadata['tag'])
+            Path('dist/notes.md').unlink()
+            release.notes()
+        self.assertEqual(json.loads(Path('dist/release.json').read_text()), metadata)
+        self.assertTrue(metadata['publish'])
+        self.assertEqual(Path('dist/notes.md').read_text(), 'New version\n')
+
+    def test_artifact_must_belong_to_event_commit(self):
+        self.tagged()
+        self.packaged()
+        self.git('commit', '--allow-empty', '-qm', 'different source')
+        with patch.dict(os.environ, GITHUB_SHA=self.git('rev-parse', 'HEAD')):
+            with self.assertRaisesRegex(ValueError, 'event commit'):
+                release.publish()
+
+    def test_artifact_tag_must_match_version(self):
+        metadata = self.tagged()
+        metadata['tag'] = '2.15.0'
+        Path('dist/release.json').write_text(json.dumps(metadata))
+        with self.assertRaisesRegex(ValueError, 'artifact version'):
+            release.notes()
 
     def test_checksum_matches_archive(self):
         metadata = self.packaged()
@@ -153,7 +231,7 @@ class ReleaseTests(unittest.TestCase):
 
     def test_branch_cannot_publish(self):
         self.packaged()
-        with self.assertRaisesRegex(ValueError, 'version-tag'):
+        with self.assertRaisesRegex(ValueError, 'Only release builds'):
             release.publish()
 
     def test_corrupt_archive_is_not_uploaded(self):
@@ -167,7 +245,7 @@ class ReleaseTests(unittest.TestCase):
         self.tagged()
         self.packaged()
         existing = [[dict(tag_name='v2.14.0', draft=False, prerelease=False)]]
-        with patch.object(release, 'run', return_value=json.dumps(existing)):
+        with self.github(existing):
             with self.assertRaisesRegex(ValueError, 'already published'):
                 release.publish()
 
@@ -175,7 +253,7 @@ class ReleaseTests(unittest.TestCase):
         self.tagged()
         self.packaged()
         existing = [[dict(tag_name='2.15.0', draft=False, prerelease=False)]]
-        with patch.object(release, 'run', return_value=json.dumps(existing)):
+        with self.github(existing):
             with self.assertRaisesRegex(ValueError, 'newer version'):
                 release.publish()
 
@@ -185,6 +263,86 @@ class ReleaseTests(unittest.TestCase):
         with patch.dict(os.environ, GITHUB_REPOSITORY='other/repository'):
             with self.assertRaisesRegex(ValueError, 'different repository'):
                 release.publish()
+
+    def test_publisher_creates_missing_tag_at_the_tested_commit(self):
+        metadata = self.tagged()
+        target = dict(type='commit', sha=metadata['commit'])
+        with patch.object(release, 'read_tag', side_effect=[None, target]), \
+                patch.object(release.subprocess, 'run') as commands:
+            release.ensure_tag(metadata)
+        command = commands.call_args.args[0]
+        self.assertIn('ref=refs/tags/' + metadata['tag'], command)
+        self.assertIn('sha=' + metadata['commit'], command)
+
+    def test_publisher_preserves_a_matching_existing_tag(self):
+        metadata = self.tagged()
+        with patch.object(release, 'read_tag', return_value=dict(type='commit', sha=metadata['commit'])), \
+                patch.object(release.subprocess, 'run') as commands:
+            release.ensure_tag(metadata)
+        commands.assert_not_called()
+
+    def test_publisher_never_moves_a_tag_for_another_commit(self):
+        metadata = self.tagged()
+        with patch.object(release, 'read_tag', return_value=dict(type='commit', sha='0' * 40)), \
+                patch.object(release.subprocess, 'run') as commands:
+            with self.assertRaisesRegex(ValueError, 'tested commit'):
+                release.ensure_tag(metadata)
+        commands.assert_not_called()
+
+    def test_annotated_tag_is_resolved_to_the_tested_commit(self):
+        metadata = self.tagged()
+        with patch.object(release, 'read_tag', return_value=dict(type='tag', sha='a' * 40)), \
+                self.github(dict(object=dict(type='commit', sha=metadata['commit']))):
+            release.ensure_tag(metadata)
+
+    def test_tag_read_only_treats_404_as_missing(self):
+        for code in [403, 404, 500]:
+            with self.subTest(code=code), patch.object(release.subprocess, 'run', return_value=
+                    subprocess.CompletedProcess([], 1, '', f'gh: Request failed (HTTP {code})')):
+                if code == 404:
+                    self.assertIsNone(release.read_tag('2.14.0'))
+                else:
+                    with self.assertRaises(subprocess.CalledProcessError):
+                        release.read_tag('2.14.0')
+
+    def test_verified_assets_are_uploaded_before_release_becomes_public(self):
+        metadata = self.tagged()
+        self.packaged()
+        assets = [Path('dist', metadata['asset']), Path('dist', metadata['asset'] + '.sha256')]
+        uploaded = dict(assets=[dict(name=path.name, size=path.stat().st_size,
+                                    digest='sha256:' + hashlib.sha256(path.read_bytes()).hexdigest()) for path in assets])
+        draft = [[dict(tag_name=metadata['tag'], id=42, draft=True)]]
+        original = subprocess.run
+
+        def execute(command, *args, **kwargs):
+            if command[0] == 'gh':
+                return subprocess.CompletedProcess(command, 0)
+            return original(command, *args, **kwargs)
+
+        with self.github([], draft, uploaded), patch.object(release, 'ensure_tag'), \
+                patch.object(release.subprocess, 'run', side_effect=execute) as commands:
+            release.publish()
+        operations = [call.args[0] for call in commands.call_args_list if call.args[0][0] == 'gh']
+        self.assertEqual([command[2] for command in operations], ['create', 'upload', 'edit'])
+        self.assertIn('--draft', operations[0])
+        self.assertTrue(all(str(path) in operations[1] for path in assets))
+        self.assertIn('--draft=false', operations[-1])
+
+    def test_upload_digest_mismatch_keeps_release_private(self):
+        metadata = self.tagged()
+        self.packaged()
+        draft = [[dict(tag_name=metadata['tag'], id=42, draft=True)]]
+        original = subprocess.run
+
+        def execute(command, *args, **kwargs):
+            return subprocess.CompletedProcess(command, 0) if command[0] == 'gh' else original(command, *args, **kwargs)
+
+        with self.github([], draft, dict(assets=[])), patch.object(release, 'ensure_tag'), \
+                patch.object(release.subprocess, 'run', side_effect=execute) as commands:
+            with self.assertRaisesRegex(ValueError, 'asset failed verification'):
+                release.publish()
+        operations = [call.args[0] for call in commands.call_args_list if call.args[0][0] == 'gh']
+        self.assertFalse(any(command[2] == 'edit' for command in operations))
 
 
 if __name__ == '__main__':

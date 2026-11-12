@@ -16,36 +16,39 @@ retain their `.xcresult` bundle when available.
 
 No signing certificates, Apple account, custom runner, or repository secrets are
 required. The workflow's release job uses the automatic `GITHUB_TOKEN` with
-`contents: write`; ordinary builds and pull requests only receive read access.
+`contents: write`; build jobs and pull requests only receive read access.
 Repository settings must allow Actions and the official artifact actions.
 
 ## Version releases
 
-Push a numeric version tag such as `2.14.0` or `v2.14.0` to publish a release.
-The release commit must already belong to `main`; use only one spelling per
-version. A version change in Xcode alone builds a branch artifact, but does not
-publish a release. Tag versions override the app's marketing version in CI
-without modifying source files. Build numbers are `1000 + git rev-list --count
-<commit>`, so full Git history is required.
+Set the app target's `MARKETING_VERSION` consistently in Debug and Release, then
+push the version commit to `main`. If that numeric version is newer than every
+existing numeric version tag, CI automatically builds and tests the app, creates
+the version tag at the tested commit, and publishes a GitHub Release with its ZIP
+and checksum. The first version in a repository with no version tags also
+publishes automatically. No release-note review or publication confirmation is
+required. Ordinary commits using an existing version only produce build artifacts.
 
-Before adding or editing release notes or publishing a version, follow the
-changelog review requirements in `AGENTS.md`. Save approved notes in
-`docs/release-notes/<version>.md` before tagging. The workflow uses that exact
-committed text when present, and never generates a changelog or calls a Markdown
-rendering service. If no version notes file exists, the release body is empty.
-An empty notes file is rejected.
+Optional release notes belong in `docs/release-notes/<version>.md` in the version
+commit. CI uses that exact committed text and never calls a Markdown rendering
+service. Missing notes do not block publication; an explicitly committed empty
+notes file is rejected.
 
-After the changes and wording have been reviewed, push the branch and version
-tag atomically, for example:
+Explicit numeric version tags such as `2.15.0` or `v2.15.0` also trigger the same
+build and publication process. The commit must belong to `main`; use only one
+spelling per version. For this optional tag-driven route:
 
 ```sh
-git tag 2.14.0
-git push --atomic origin main refs/tags/2.14.0
+git tag 2.15.0
+git push --atomic origin main refs/tags/2.15.0
 ```
 
-Only the tag event publishes a GitHub Release. Branch events never create beta
-releases. The release target is the repository running the workflow, obtained
-from `GITHUB_REPOSITORY`; it is not hardcoded to the upstream repository.
+Feature branches, pull requests, and manual workflow dispatches only build and
+test. Tag versions override the app's marketing version in CI without modifying
+source files. Build numbers are `1000 + git rev-list --count <commit>`, so full
+Git history is required. The release target comes from `GITHUB_REPOSITORY`, not
+the upstream repository. Publication jobs are serialized and main/version-tag
+workflows are allowed to finish when another commit arrives.
 
 The workflow first passes all tests and builds the universal app, verifies code
 signatures, packaged helper files, bundle version, and absence of updater/custom
@@ -54,10 +57,15 @@ URL registration. It uploads these assets to a draft release:
 - `Input-Source-Pro-<version>-macOS-universal.zip`
 - `Input-Source-Pro-<version>-macOS-universal.zip.sha256`
 
-The draft is published only after GitHub reports matching asset sizes and
-SHA-256 digests. Failed draft uploads can be retried. Completed releases are never
-overwritten, and an older/equivalent version cannot replace a newer published
-version. The workflow does not edit tags or repository files.
+The publisher verifies that the remote version tag points to the tested commit,
+creating it only when absent. It never moves an existing tag. The draft is
+published only after GitHub reports matching asset sizes and SHA-256 digests.
+If publication fails, rerun the failed release job in the original Actions run:
+the downloaded build metadata retains its release decision even if that attempt
+already created the tag. Completed releases are never overwritten, and an
+older/equivalent version cannot replace a newer published version. CI does not
+edit repository files. Automatically created tags use `GITHUB_TOKEN`, so they do
+not start a duplicate tag-push workflow.
 
 ## Signing and installation
 

@@ -37,11 +37,14 @@ still required. See [helper setup and validation limits](Tools/CaretPalette/READ
 
 ## Automated builds and releases
 
-Pushes and pull requests run tests and build a universal app. Push a version tag
-such as `v2.14.0` or `2.14.0` to build and upload an app ZIP and SHA-256 checksum to
-this repository's GitHub Releases. The pipeline uses GitHub-hosted macOS runners
-and does not require signing credentials, npm, a third-party updater or a
-release service. See [release instructions](docs/releases.md).
+Pushes and pull requests run tests and build a universal app. Increasing the
+app's `MARKETING_VERSION` on `main` automatically creates a version tag and
+publishes the checked ZIP and SHA-256 checksum to this repository's GitHub
+Releases. No release-note approval or separate publication confirmation is
+needed. Explicit numeric version tag pushes also publish releases; commits for
+an existing version only create build artifacts. The pipeline uses GitHub-hosted
+macOS runners and does not require signing credentials, npm, a third-party
+updater or a release service. See [release instructions](docs/releases.md).
 
 CI ZIPs are ad-hoc signed and are not notarized by Apple. macOS may require a
 user-approved Gatekeeper exception; distributing Developer ID signed builds

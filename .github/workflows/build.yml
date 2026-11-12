@@ -12,7 +12,7 @@ permissions:
 
 concurrency:
   group: build-${{ github.ref }}
-  cancel-in-progress: ${{ !startsWith(github.ref, 'refs/tags/') }}
+  cancel-in-progress: ${{ github.ref != 'refs/heads/main' && !startsWith(github.ref, 'refs/tags/') }}
 
 jobs:
   build:
@@ -108,9 +108,14 @@ jobs:
     outputs:
       publish: ${{ steps.release.outputs.publish }}
   release:
-    if: startsWith(github.ref, 'refs/tags/') && github.event_name == 'push'
+    if: >-
+      needs.build.outputs.publish == 'true' && github.event_name == 'push' &&
+      (github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/'))
     needs: build
     runs-on: ubuntu-latest
+    concurrency:
+      group: publish-${{ github.repository }}
+      cancel-in-progress: false
     permissions:
       contents: write
     steps:
@@ -122,8 +127,8 @@ jobs:
         with:
           name: Input-Source-Pro-macOS-universal
           path: dist
-      - name: Restore approved release notes
-        run: python3 scripts/release.py prepare
+      - name: Restore committed release notes
+        run: python3 scripts/release.py notes
       - name: Publish verified release assets
         env:
           GH_TOKEN: ${{ github.token }}

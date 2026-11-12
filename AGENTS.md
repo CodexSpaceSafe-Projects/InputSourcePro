@@ -33,8 +33,8 @@
 - Branch names are descriptive and prefixed (e.g., `feature/add-xyz-support`, `fix/indicator-crash`).
 - PRs should include: purpose, linked issues (e.g., `Closes #123`), summary of changes, and testing notes. Add screenshots or screen recordings for UI changes.
 
-## Release Changelog Review
-- Before creating or updating release notes or publishing a release, send a draft changelog message in chat for the user to review. Wait for approval of the wording before saving it to release-note files, updating the website changelog, or publishing. Approval already given in the conversation counts; incorporate requested revisions and show the revised draft when approval is still pending.
-- Draft from changes since the preceding published stable release. Describe user-facing changes, verify contributor GitHub usernames, and credit each change with relevant pull request links, following the 2.12.0 release style.
-- After approval, save the changelog as `docs/release-notes/<version>.md` (for example, `2.13.0.md`, without a `v` prefix) and include it in the commit to be tagged. The release script uses an existing committed file for GitHub notes; absent notes do not block the asset release. See `docs/releases.md` for the release workflow.
-- For a stable release, create the version tag locally and push `main` and that tag together with `git push --atomic origin main refs/tags/<version>`. Only numeric version tags publish a release; ordinary branch pushes run build and test checks without publishing. Releases contain an ad-hoc signed universal ZIP and checksum; Developer ID signing is a separate setup.
+## Automatic Releases
+- New versions build and publish to this repository's GitHub Releases automatically after tests and bundle checks pass. Do not ask for release-note wording approval or separate publication confirmation when the user has requested a new version or release.
+- Set the app's `MARKETING_VERSION` to the new numeric version and push to `main`. CI creates the matching version tag and uploads the universal ZIP and SHA-256 checksum. Explicit numeric version tag pushes also publish releases. Ordinary commits for an existing version do not publish another release.
+- Release notes are optional. When writing them, save `docs/release-notes/<version>.md` with the version commit, describe changes since the preceding stable release, and use verified contributor names and relevant pull request links. Missing notes never block publication.
+- Preserve published releases and their assets; use a new version for subsequent changes. See `docs/releases.md` for automation and retry behavior. Release builds use ad-hoc signatures; Developer ID signing is a separate setup.

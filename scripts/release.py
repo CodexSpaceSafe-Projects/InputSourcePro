@@ -40,6 +40,43 @@ def repository():
     return value
 
 
+def project_version():
+    project = Path('Input Source Pro.xcodeproj/project.pbxproj').read_text()
+    versions = set(re.findall(r'MARKETING_VERSION = ([^;\s]+);', project))
+    if len(versions) != 1 or any(value.startswith('v') or version_tuple(value) is None for value in versions):
+        raise ValueError('Project MARKETING_VERSION must be one consistent numeric version')
+    return versions.pop()
+
+
+def restore_notes(metadata):
+    Path('dist/notes.md').unlink(missing_ok=True)
+    if not metadata['publish']:
+        return
+    path = f'docs/release-notes/{metadata["version"]}.md'
+    if git('ls-tree', '--name-only', metadata['commit'], '--', path):
+        notes = subprocess.check_output(['git', 'show', f'{metadata["commit"]}:{path}'], text=True)
+        if not notes.strip():
+            raise ValueError(f'Release notes must not be empty: {path}')
+        Path('dist/notes.md').write_text(notes)
+
+
+def release_metadata():
+    metadata = json.loads(Path('dist/release.json').read_text())
+    if metadata['repository'] != repository():
+        raise ValueError('Release metadata belongs to a different repository')
+    if metadata['commit'] != git('rev-parse', f'{os.environ["GITHUB_SHA"]}^{{commit}}'):
+        raise ValueError('Release artifact does not belong to the event commit')
+    if metadata['publish'] and (version_tuple(metadata['tag']) is None
+                                or metadata['tag'].removeprefix('v') != metadata['version']):
+        raise ValueError('Release tag does not match the artifact version')
+    return metadata
+
+
+def notes(_args=None):
+    # Keep the build's release decision when retrying after the publisher created its tag.
+    restore_notes(release_metadata())
+
+
 def prepare(_args=None):
     commit = git('rev-parse', f'{os.environ["GITHUB_SHA"]}^{{commit}}')
     ref = os.environ['GITHUB_REF']
@@ -54,25 +91,20 @@ def prepare(_args=None):
         version = tag.removeprefix('v')
     else:
         tag = ''
-        project = Path('Input Source Pro.xcodeproj/project.pbxproj').read_text()
-        match = re.search(r'MARKETING_VERSION = ([0-9.]+);', project)
-        if not match or version_tuple(match.group(1)) is None:
-            raise ValueError('Project MARKETING_VERSION must be a numeric version')
-        version = match.group(1)
+        version = project_version()
+        if ref == 'refs/heads/main' and os.environ.get('GITHUB_EVENT_NAME') == 'push':
+            previous = [value for name in git('tag', '--list').splitlines()
+                        if (value := version_tuple(name)) is not None]
+            publish = not previous or version_tuple(version) > max(previous)
+            if publish:
+                subprocess.run(['git', 'merge-base', '--is-ancestor', commit, 'origin/main'], check=True)
+                tag = version
     metadata = dict(repository=repository(), commit=commit, version=version,
                     build=build_number(commit), tag=tag, publish=publish,
                     asset=f'Input-Source-Pro-{version}-macOS-universal.zip')
     Path('dist').mkdir(exist_ok=True)
     Path('dist/release.json').write_text(json.dumps(metadata, indent=2) + '\n')
-    Path('dist/notes.md').unlink(missing_ok=True)
-    if publish:
-        # Only use notes committed with the selected version; never generate a changelog.
-        path = f'docs/release-notes/{version}.md'
-        if git('ls-tree', '--name-only', commit, '--', path):
-            notes = subprocess.check_output(['git', 'show', f'{commit}:{path}'], text=True)
-            if not notes.strip():
-                raise ValueError(f'Release notes must not be empty: {path}')
-            Path('dist/notes.md').write_text(notes)
+    restore_notes(metadata)
     with open(os.environ['GITHUB_OUTPUT'], 'a') as output:
         for key, value in metadata.items():
             output.write(f'{key}={str(value).lower() if isinstance(value, bool) else value}\n')
@@ -107,12 +139,36 @@ def checksum(_args=None):
     return digest
 
 
+def read_tag(tag):
+    result = subprocess.run(['gh', 'api', f'repos/{repository()}/git/ref/tags/{tag}'],
+                            capture_output=True, text=True)
+    if result.returncode and 'HTTP 404' in result.stderr:
+        return None
+    result.check_returncode()
+    return json.loads(result.stdout)['object']
+
+
+def ensure_tag(metadata):
+    target = read_tag(metadata['tag'])
+    if target is None:
+        subprocess.run(['gh', 'api', '--method', 'POST', f'repos/{repository()}/git/refs',
+                        '-f', f'ref=refs/tags/{metadata["tag"]}', '-f', f'sha={metadata["commit"]}'], check=True)
+        target = read_tag(metadata['tag'])
+    seen = set()
+    while target and target['type'] == 'tag':
+        sha = target['sha']
+        if sha in seen or len(seen) >= 8:
+            raise ValueError('Release tag chain is invalid')
+        seen.add(sha)
+        target = json.loads(run('gh', 'api', f'repos/{repository()}/git/tags/{sha}'))['object']
+    if not target or target['type'] != 'commit' or target['sha'] != metadata['commit']:
+        raise ValueError('Remote release tag does not point to the tested commit')
+
+
 def publish(_args=None):
-    metadata = json.loads(Path('dist/release.json').read_text())
+    metadata = release_metadata()
     if not metadata['publish'] or not metadata['tag']:
-        raise ValueError('Only version-tag builds may publish releases')
-    if metadata['repository'] != repository():
-        raise ValueError('Release metadata belongs to a different repository')
+        raise ValueError('Only release builds may publish releases')
     tag = metadata['tag']
     assets = [Path('dist') / metadata['asset'], Path('dist') / (metadata['asset'] + '.sha256')]
     expected_checksum = f'{hashlib.sha256(assets[0].read_bytes()).hexdigest()}  {assets[0].name}\n'
@@ -128,6 +184,8 @@ def publish(_args=None):
         previous = version_tuple(item['tag_name'])
         if not item['draft'] and not item['prerelease'] and previous and previous >= version_tuple(tag):
             raise ValueError('A release with the same or a newer version already exists')
+    subprocess.run(['git', 'merge-base', '--is-ancestor', metadata['commit'], 'origin/main'], check=True)
+    ensure_tag(metadata)
     if not existing:
         notes = ['--notes-file', 'dist/notes.md'] if Path('dist/notes.md').is_file() else ['--notes', '']
         subprocess.run(['gh', 'release', 'create', tag, '--repo', repository(), '--verify-tag',
@@ -149,8 +207,8 @@ def publish(_args=None):
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
-    parser.add_argument('command', choices=['prepare', 'check-bundle', 'checksum', 'publish'])
+    parser.add_argument('command', choices=['prepare', 'notes', 'check-bundle', 'checksum', 'publish'])
     parser.add_argument('--bundle', default='dist/Input Source Pro.app')
     arguments = parser.parse_args()
-    {'prepare': prepare, 'check-bundle': check_bundle,
+    {'prepare': prepare, 'notes': notes, 'check-bundle': check_bundle,
      'checksum': checksum, 'publish': publish}[arguments.command](arguments)
