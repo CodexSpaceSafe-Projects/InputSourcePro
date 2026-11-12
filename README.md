@@ -29,10 +29,11 @@ macOS 12 and later; native launch-at-login registration requires macOS 13 or lat
 Accessibility and Input Monitoring permissions are still required for the
 features that inspect other applications or handle global input events.
 
-The optional Cursor Helper requires the app and helper to have an Apple
-publisher signature from the same developer. Ad-hoc CI builds disable that
-optional integration rather than weaken IPC authentication; standard
-Accessibility-based cursor tracking remains available.
+The optional Cursor Helper supports ad-hoc builds without an Apple certificate
+chain or matching Team ID. Its native local channel checks the current user,
+process identity, executable path, and a private listener session record.
+Enhanced Mode, Accessibility permission, and macOS input-method consent are
+still required. See [helper setup and validation limits](Tools/CaretPalette/README.md).
 
 ## Automated builds and releases
 

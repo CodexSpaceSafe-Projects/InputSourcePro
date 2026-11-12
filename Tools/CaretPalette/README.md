@@ -74,6 +74,8 @@ InputMethodKit must still connect the helper to the foreground editor to obtain 
 
 The former certificate-based channel had separate-process live validation; those results do not validate this replacement. Channel regression tests now cover native message exchange and disconnects, unexpected executable paths in both directions, mismatched session identities, audit-token changes, private file permissions, symlinks, invalid records, listener ownership, and session cleanup. Run them on macOS with an ad-hoc build and perform a live setup/connection check before claiming runtime validation of the new channel. Existing cursor tests also cover authorization expiry and Secure Input/secure-field suppression.
 
+Automated validation on 2026-11-12 used Xcode 26.3 on an Intel macOS 15 runner. The ad-hoc universal Release build, bundle signature checks, helper packaging, and architecture checks passed. All 20 channel tests and 33 helper setup tests passed; the full suite reported 437 tests, one skipped because the runner lacked two distinct input sources, and zero failures. Apple silicon was compiled but not run. These results do not establish live helper installation/consent, caret tracking in actual editors, login/restart, hardware sleep/wake, multi-display behavior, or compatibility across all supported macOS versions.
+
 ## Consent research
 
 Apple's [QA1810](https://developer.apple.com/library/archive/qa/qa1810/_index.html) explains why palette input methods are absent from Keyboard settings' source list and need their own enable/disable UI.
